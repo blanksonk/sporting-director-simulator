@@ -1,0 +1,290 @@
+[
+  {
+    "id": 209331,
+    "name": "M. Salah",
+    "club": "Liverpool",
+    "position": "MID",
+    "age": 33,
+    "overall": 91,
+    "value": 82000000
+  },
+  {
+    "id": 203376,
+    "name": "V. van Dijk",
+    "club": "Liverpool",
+    "position": "DEF",
+    "age": 34,
+    "overall": 90,
+    "value": 57000000
+  },
+  {
+    "id": 239085,
+    "name": "E. Haaland",
+    "club": "Manchester City",
+    "position": "FWD",
+    "age": 25,
+    "overall": 90,
+    "value": 157000000
+  },
+  {
+    "id": 231866,
+    "name": "Rodri",
+    "club": "Manchester City",
+    "position": "MID",
+    "age": 29,
+    "overall": 90,
+    "value": 102000000
+  },
+  {
+    "id": 212831,
+    "name": "Alisson",
+    "club": "Liverpool",
+    "position": "GK",
+    "age": 33,
+    "overall": 89,
+    "value": 51000000
+  },
+  {
+    "id": 256630,
+    "name": "F. Wirtz",
+    "club": "Liverpool",
+    "position": "MID",
+    "age": 23,
+    "overall": 89,
+    "value": 150500000
+  },
+  {
+    "id": 230621,
+    "name": "G. Donnarumma",
+    "club": "Manchester City",
+    "position": "GK",
+    "age": 27,
+    "overall": 89,
+    "value": 97000000
+  },
+  {
+    "id": 246669,
+    "name": "B. Saka",
+    "club": "Arsenal",
+    "position": "FWD",
+    "age": 24,
+    "overall": 88,
+    "value": 118500000
+  },
+  {
+    "id": 232580,
+    "name": "Gabriel",
+    "club": "Arsenal",
+    "position": "DEF",
+    "age": 28,
+    "overall": 88,
+    "value": 84000000
+  },
+  {
+    "id": 233731,
+    "name": "A. Isak",
+    "club": "Liverpool",
+    "position": "FWD",
+    "age": 26,
+    "overall": 88,
+    "value": 111000000
+  },
+  {
+    "id": 234378,
+    "name": "D. Rice",
+    "club": "Arsenal",
+    "position": "MID",
+    "age": 27,
+    "overall": 87,
+    "value": 83500000
+  },
+  {
+    "id": 220901,
+    "name": "David Raya",
+    "club": "Arsenal",
+    "position": "GK",
+    "age": 30,
+    "overall": 87,
+    "value": 54500000
+  },
+  {
+    "id": 222665,
+    "name": "M. \u00d8degaard",
+    "club": "Arsenal",
+    "position": "MID",
+    "age": 27,
+    "overall": 87,
+    "value": 98000000
+  },
+  {
+    "id": 241651,
+    "name": "V. Gy\u00f6keres",
+    "club": "Arsenal",
+    "position": "FWD",
+    "age": 27,
+    "overall": 87,
+    "value": 93000000
+  },
+  {
+    "id": 243715,
+    "name": "W. Saliba",
+    "club": "Arsenal",
+    "position": "DEF",
+    "age": 25,
+    "overall": 87,
+    "value": 92000000
+  },
+  {
+    "id": 257534,
+    "name": "C. Palmer",
+    "club": "Chelsea",
+    "position": "MID",
+    "age": 24,
+    "overall": 87,
+    "value": 109000000
+  },
+  {
+    "id": 256079,
+    "name": "M. Caicedo",
+    "club": "Chelsea",
+    "position": "MID",
+    "age": 24,
+    "overall": 87,
+    "value": 93000000
+  },
+  {
+    "id": 239837,
+    "name": "A. Mac Allister",
+    "club": "Liverpool",
+    "position": "MID",
+    "age": 27,
+    "overall": 87,
+    "value": 93000000
+  },
+  {
+    "id": 212198,
+    "name": "Bruno Fernandes",
+    "club": "Manchester United",
+    "position": "MID",
+    "age": 31,
+    "overall": 87,
+    "value": 77000000
+  },
+  {
+    "id": 237678,
+    "name": "I. Konat\u00e9",
+    "club": "Liverpool",
+    "position": "DEF",
+    "age": 27,
+    "overall": 86,
+    "value": 70000000
+  },
+  {
+    "id": 239818,
+    "name": "R\u00faben Dias",
+    "club": "Manchester City",
+    "position": "DEF",
+    "age": 29,
+    "overall": 86,
+    "value": 64500000
+  },
+  {
+    "id": 240638,
+    "name": "T. Reijnders",
+    "club": "Manchester City",
+    "position": "MID",
+    "age": 27,
+    "overall": 86,
+    "value": 79500000
+  },
+  {
+    "id": 247851,
+    "name": "Bruno Guimar\u00e3es",
+    "club": "Newcastle United",
+    "position": "MID",
+    "age": 28,
+    "overall": 86,
+    "value": 77500000
+  },
+  {
+    "id": 241096,
+    "name": "S. Tonali",
+    "club": "Newcastle United",
+    "position": "MID",
+    "age": 26,
+    "overall": 86,
+    "value": 76500000
+  },
+  {
+    "id": 202811,
+    "name": "E. Mart\u00ednez",
+    "club": "Aston Villa",
+    "position": "GK",
+    "age": 33,
+    "overall": 85,
+    "value": 26500000
+  },
+  {
+    "id": 216393,
+    "name": "Y. Tielemans",
+    "club": "Aston Villa",
+    "position": "MID",
+    "age": 29,
+    "overall": 85,
+    "value": 54000000
+  },
+  {
+    "id": 246104,
+    "name": "R. Gravenberch",
+    "club": "Liverpool",
+    "position": "MID",
+    "age": 24,
+    "overall": 85,
+    "value": 66500000
+  },
+  {
+    "id": 237692,
+    "name": "P. Foden",
+    "club": "Manchester City",
+    "position": "FWD",
+    "age": 25,
+    "overall": 85,
+    "value": 71500000
+  },
+  {
+    "id": 243014,
+    "name": "B. Mbeumo",
+    "club": "Manchester United",
+    "position": "FWD",
+    "age": 26,
+    "overall": 85,
+    "value": 64500000
+  },
+  {
+    "id": 199503,
+    "name": "G. Xhaka",
+    "club": "Sunderland",
+    "position": "MID",
+    "age": 33,
+    "overall": 85,
+    "value": 36000000
+  },
+  {
+    "id": 262621,
+    "name": "G. Mamardashvili",
+    "club": "Liverpool",
+    "position": "GK",
+    "age": 25,
+    "overall": 84,
+    "value": 45000000
+  },
+  {
+    "id": 256675,
+    "name": "O. Marmoush",
+    "club": "Manchester City",
+    "position": "FWD",
+    "age": 27,
+    "overall": 84,
+    "value": 50500000
+  }
+]
