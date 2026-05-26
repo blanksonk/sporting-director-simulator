@@ -95,8 +95,31 @@ export default function TransferRoom({
     return () => clearTimeout(searchTimer.current);
   }, [searchQuery, squad, allPlayers, transfers.rejected]);
 
+  const MIN_REQS = { GK: 1, DEF: 3, MID: 3, FWD: 2 };
+  const MIN_TOTAL = 14;
+
+  function squadIssues(s) {
+    const issues = [];
+    const total = s.length;
+    if (total < MIN_TOTAL) issues.push(`${MIN_TOTAL - total} more player${MIN_TOTAL - total === 1 ? '' : 's'} needed (min ${MIN_TOTAL})`);
+    for (const [pos, min] of Object.entries(MIN_REQS)) {
+      const count = s.filter(p => p.position === pos).length;
+      if (count < min) issues.push(`${min - count} more ${pos}${min - count > 1 ? 's' : ''} needed`);
+    }
+    return issues;
+  }
+
+  const squadWarnings = squadIssues(squad);
+  const squadOk = squadWarnings.length === 0;
+
   function handleSell(player) {
-    setSquad(prev => prev.filter(p => p.id !== player.id));
+    const afterSell = squad.filter(p => p.id !== player.id);
+    if (afterSell.length < 11) {
+      setSellTarget(null);
+      showToast('Cannot drop below 11 players', 'error');
+      return;
+    }
+    setSquad(afterSell);
     setBudget(b => b + player.value);
     setTransfers(t => ({ ...t, sold: [...t.sold, player] }));
     setSellTarget(null);
@@ -131,6 +154,7 @@ export default function TransferRoom({
   }
 
   function handleSimulate() {
+    if (!squadOk) return;
     if (transfers.bought.length === 0 && transfers.sold.length === 0) {
       setConfirmSim(true);
       return;
@@ -159,23 +183,41 @@ export default function TransferRoom({
             </div>
             <BudgetBar budget={budget} initial={initialBudget.current} />
           </div>
-          <button
-            onClick={handleSimulate}
-            className="px-6 py-2.5 rounded-xl font-bold text-black text-sm transition-all hover:scale-105 active:scale-95 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
-            style={{ backgroundColor: color }}
-          >
-            Simulate Season →
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleSimulate}
+              disabled={!squadOk}
+              className="px-6 py-2.5 rounded-xl font-bold text-black text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:scale-105 active:enabled:scale-95 hover:enabled:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+              style={{ backgroundColor: color }}
+            >
+              Simulate Season →
+            </button>
+            {!squadOk && (
+              <div className="text-[10px] text-red-400 text-right max-w-[180px]">
+                {squadWarnings[0]}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Squad panel */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-lg font-bold text-white">Your Squad</h2>
-            <div className="text-sm text-gray-500">
-              {squad.length} players · {transfers.bought.length} in · {transfers.sold.length} out
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <span>{squad.length} players · {transfers.bought.length} in · {transfers.sold.length} out</span>
+              {!squadOk && (
+                <span className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                  ⚠ {squadWarnings[0]}
+                </span>
+              )}
+              {squadOk && (
+                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  ✓ Squad ready
+                </span>
+              )}
             </div>
           </div>
 
