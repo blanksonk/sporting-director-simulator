@@ -8,6 +8,7 @@ export const CLUB_LOGOS = {
   'Brentford':           `${BASE}/402.svg`,
   'Brighton':            `${BASE}/397.svg`,
   'Chelsea':             `${BASE}/61.svg`,
+  'Coventry City':       `${BASE}/1076.svg`,
   'Crystal Palace':      `${BASE}/354.svg`,
   'Everton':             `${BASE}/62.svg`,
   'Fulham':              `${BASE}/63.svg`,
