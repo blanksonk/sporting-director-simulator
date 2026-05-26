@@ -7,6 +7,7 @@ import TeamSelect from './components/TeamSelect.jsx';
 import SponsorSelect from './components/SponsorSelect.jsx';
 import TransferRoom from './components/TransferRoom.jsx';
 import TransferChainAnimation from './components/TransferChainAnimation.jsx';
+import SeasonAnimation from './components/SeasonAnimation.jsx';
 import TacticsRoom from './components/TacticsRoom.jsx';
 import SimulationResults from './components/SimulationResults.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
@@ -33,7 +34,7 @@ export default function App() {
   const [lineup, setLineup]               = useState(_s?.lineup ?? {});
   const [roles, setRoles]                 = useState(_s?.roles ?? {});
   const [simulationResults, setSimulationResults] = useState(_s?.simulationResults ?? null);
-  // resolvedData holds the chain result (Map — not persisted to localStorage)
+  // resolvedData is non-serializable (contains Maps) — not in localStorage
   const [resolvedData, setResolvedData] = useState(null);
 
   // Persist game state to localStorage (cleared when returning to landing)
@@ -91,6 +92,11 @@ export default function App() {
     setFormation(chosenFormation);
     setLineup(chosenLineup);
     setRoles(chosenRoles);
+    setScreen('seasonAnimation');
+  }
+
+  function handleSeasonComplete(result) {
+    setSimulationResults(result);
     setScreen('results');
   }
 
@@ -104,8 +110,8 @@ export default function App() {
     setTransfers({ bought: [], sold: [] });
     setLineup({});
     setRoles({});
-    setSimulationResults(null);
     setResolvedData(null);
+    setSimulationResults(null);
     // username and anon_user_id intentionally kept across resets
   }
 
@@ -171,6 +177,17 @@ export default function App() {
           onBack={() => setScreen('transferRoom')}
         />
       )}
+      {screen === 'seasonAnimation' && (
+        <SeasonAnimation
+          allPlayers={allPlayers.length > 0 ? allPlayers : MOCK_PLAYERS}
+          userSquad={squad}
+          club={selectedClub}
+          transfers={transfers}
+          roles={roles}
+          resolvedData={resolvedData}
+          onComplete={handleSeasonComplete}
+        />
+      )}
       {screen === 'results' && (
         <SimulationResults
           club={selectedClub}
@@ -184,6 +201,7 @@ export default function App() {
           startingBudget={startingBudget}
           budgetRemaining={budget}
           resolvedData={resolvedData}
+          simulationResults={simulationResults}
           onPlayAgain={handleReset}
           onLeaderboard={() => setScreen('leaderboard')}
         />

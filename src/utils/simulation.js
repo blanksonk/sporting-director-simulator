@@ -240,9 +240,12 @@ export function simulateSeason(squads, userClub, roles) {
   });
 
   const userFixtures = [];
+  const matchweekSnapshots = [];
   const fixtures = buildFixtures(clubs);
 
   fixtures.forEach(({ matchweek, games }) => {
+    const mwGames = [];
+
     games.forEach(([home, away]) => {
       const homeSquadRaw = squads.get(home) || [];
       const awaySquadRaw = squads.get(away) || [];
@@ -297,8 +300,11 @@ export function simulateSeason(squads, userClub, roles) {
       updateStats(homeEvents, homeYellows, homeSquad, home, homeGkSaves);
       updateStats(awayEvents, awayYellows, awaySquad, away, awayGkSaves);
 
+      const isUserGame = home === userClub || away === userClub;
+      mwGames.push({ home, away, homeGoals, awayGoals, isUserGame });
+
       // Capture user's games
-      if (home === userClub || away === userClub) {
+      if (isUserGame) {
         const isHome = home === userClub;
         userFixtures.push({
           matchweek,
@@ -313,6 +319,16 @@ export function simulateSeason(squads, userClub, roles) {
         });
       }
     });
+
+    // Snapshot table + top scorers after this matchweek
+    const tableSnapshot = Object.values(table)
+      .sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+      .map((t, i) => ({ ...t, gd: t.gf - t.ga, position: i + 1 }));
+    const topScorers = [...leaguePlayerStats.values()]
+      .sort((a, b) => b.goals - a.goals || b.assists - a.assists)
+      .slice(0, 10)
+      .map(s => ({ playerId: s.player.id, name: s.player.name, club: s.club, goals: s.goals, assists: s.assists }));
+    matchweekSnapshots.push({ matchweek, games: mwGames, tableSnapshot, topScorers });
   });
 
   // Finalise table
@@ -333,7 +349,7 @@ export function simulateSeason(squads, userClub, roles) {
     if (s) userStats[p.id] = s;
   });
 
-  return { table: sortedTable, userFixtures, leagueTopScorers, leagueTopAssisters, userStats };
+  return { table: sortedTable, userFixtures, leagueTopScorers, leagueTopAssisters, userStats, matchweekSnapshots };
 }
 
 // ── Effective season-averaged strength (for fast Monte Carlo) ────────────────

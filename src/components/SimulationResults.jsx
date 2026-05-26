@@ -114,7 +114,7 @@ function BarStat({ label, pct, color, note }) {
   );
 }
 
-export default function SimulationResults({ club, squad, allPlayers, transfers, formation, lineup, roles, username, startingBudget, budgetRemaining, resolvedData, onPlayAgain, onLeaderboard }) {
+export default function SimulationResults({ club, squad, allPlayers, transfers, formation, lineup, roles, username, startingBudget, budgetRemaining, resolvedData, simulationResults, onPlayAgain, onLeaderboard }) {
   const [tab, setTab]       = useState('Overview');
   const [results, setResults] = useState(null);
   const [outlook, setOutlook] = useState(null);
@@ -130,7 +130,9 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
       // Use pre-resolved chain if available (from TransferChainAnimation), else recompute
       const { updatedSquads, incomings, outgoings } = resolvedData
         ?? resolveTransferChain(allPlayers, squad, club, transfers.bought, transfers.sold);
-      const season = simulateSeason(updatedSquads, club, roles);
+      // Use pre-computed season result from SeasonAnimation if available, else recompute
+      const season = simulationResults
+        ?? simulateSeason(updatedSquads, club, roles);
       const proj   = runProjectedOutlook(updatedSquads, club, roles, 1000);
       setResults(season);
       setOutlook(proj);
