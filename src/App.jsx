@@ -8,18 +8,42 @@ import SponsorSelect from './components/SponsorSelect.jsx';
 import TransferRoom from './components/TransferRoom.jsx';
 import TacticsRoom from './components/TacticsRoom.jsx';
 import SimulationResults from './components/SimulationResults.jsx';
+import Leaderboard from './components/Leaderboard.jsx';
+
+function getSession() {
+  try {
+    const raw = localStorage.getItem('sds_session');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+const _s = getSession();
 
 export default function App() {
-  const [screen, setScreen] = useState('landing');
-  const [allPlayers, setAllPlayers] = useState([]);
-  const [selectedClub, setSelectedClub] = useState(null);
-  const [budget, setBudget] = useState(0);
-  const [squad, setSquad] = useState([]);
-  const [transfers, setTransfers] = useState({ bought: [], sold: [], rejected: [] });
-  const [formation, setFormation] = useState('4-3-3');
-  const [lineup, setLineup] = useState({});
-  const [roles, setRoles] = useState({});
-  const [simulationResults, setSimulationResults] = useState(null);
+  const [screen, setScreen]               = useState(_s?.screen ?? 'landing');
+  const [allPlayers, setAllPlayers]       = useState([]);
+  const [username, setUsername]           = useState(_s?.username ?? '');
+  const [selectedClub, setSelectedClub]   = useState(_s?.selectedClub ?? null);
+  const [budget, setBudget]               = useState(_s?.budget ?? 0);
+  const [startingBudget, setStartingBudget] = useState(_s?.startingBudget ?? 0);
+  const [squad, setSquad]                 = useState(_s?.squad ?? []);
+  const [transfers, setTransfers]         = useState(_s?.transfers ?? { bought: [], sold: [], rejected: [] });
+  const [formation, setFormation]         = useState(_s?.formation ?? '4-3-3');
+  const [lineup, setLineup]               = useState(_s?.lineup ?? {});
+  const [roles, setRoles]                 = useState(_s?.roles ?? {});
+  const [simulationResults, setSimulationResults] = useState(_s?.simulationResults ?? null);
+
+  // Persist game state to localStorage (cleared when returning to landing)
+  useEffect(() => {
+    if (screen === 'landing' || screen === 'leaderboard') {
+      localStorage.removeItem('sds_session');
+    } else {
+      localStorage.setItem('sds_session', JSON.stringify({
+        screen, username, selectedClub, budget, startingBudget,
+        squad, transfers, formation, lineup, roles, simulationResults,
+      }));
+    }
+  }, [screen, username, selectedClub, budget, startingBudget, squad, transfers, formation, lineup, roles, simulationResults]);
 
   useEffect(() => {
     fetch('/players.json')
@@ -44,7 +68,10 @@ export default function App() {
   }
 
   function handleSelectSponsor(sponsor) {
-    if (sponsor) setBudget(b => b + sponsor.bonus);
+    const bonus = sponsor?.bonus ?? 0;
+    const newBudget = budget + bonus;
+    setBudget(newBudget);
+    setStartingBudget(newBudget);
     setScreen('transferRoom');
   }
 
@@ -60,20 +87,39 @@ export default function App() {
   }
 
   function handleReset() {
+    localStorage.removeItem('sds_session');
     setScreen('landing');
     setSelectedClub(null);
     setSquad([]);
     setBudget(0);
+    setStartingBudget(0);
     setTransfers({ bought: [], sold: [] });
     setLineup({});
     setRoles({});
     setSimulationResults(null);
+    // username and anon_user_id intentionally kept across resets
   }
+
+  const showBadge = username && screen !== 'landing' && screen !== 'leaderboard';
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
+      {showBadge && (
+        <div className="fixed top-3 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/80 backdrop-blur border border-gray-700 text-xs font-semibold text-gray-300">
+          <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-black">
+            {username[0].toUpperCase()}
+          </span>
+          {username}
+        </div>
+      )}
       {screen === 'landing' && (
-        <LandingPage onStart={() => setScreen('teamSelect')} />
+        <LandingPage
+          onStart={(name) => { setUsername(name); setScreen('teamSelect'); }}
+          onLeaderboard={() => setScreen('leaderboard')}
+        />
+      )}
+      {screen === 'leaderboard' && (
+        <Leaderboard onBack={() => setScreen('landing')} />
       )}
       {screen === 'teamSelect' && (
         <TeamSelect onSelectClub={handleSelectClub} />
@@ -116,7 +162,11 @@ export default function App() {
           formation={formation}
           lineup={lineup}
           roles={roles}
+          username={username}
+          startingBudget={startingBudget}
+          budgetRemaining={budget}
           onPlayAgain={handleReset}
+          onLeaderboard={() => setScreen('leaderboard')}
         />
       )}
     </div>

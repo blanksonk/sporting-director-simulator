@@ -1,12 +1,29 @@
 import { useEffect, useState } from 'react';
 
-export default function LandingPage({ onStart }) {
+export default function LandingPage({ onStart, onLeaderboard }) {
   const [visible, setVisible] = useState(false);
+  const [step, setStep] = useState('cta'); // 'cta' | 'username'
+  const [savedName, setSavedName] = useState('');
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80);
+    const stored = localStorage.getItem('sds_username');
+    if (stored) setSavedName(stored);
     return () => clearTimeout(t);
   }, []);
+
+  function handleSubmit(e) {
+    e?.preventDefault();
+    const name = username.trim();
+    if (!name) return;
+    localStorage.setItem('sds_username', name);
+    onStart(name);
+  }
+
+  function handleStartWithSaved() {
+    onStart(savedName);
+  }
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
@@ -59,15 +76,68 @@ export default function LandingPage({ onStart }) {
           Pick your club. Land the targets. Win the league.<br />
         </p>
 
-        {/* CTA */}
-        <button
-          onClick={onStart}
-          className="group relative px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] active:scale-95"
-        >
-          <span className="relative z-10">Start Season</span>
-        </button>
+        {/* CTA — returning user */}
+        {savedName && step === 'cta' && (
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-gray-400 text-sm">
+              Welcome back, <span className="text-white font-bold">{savedName}</span>
+            </p>
+            <button
+              onClick={handleStartWithSaved}
+              className="group relative px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] active:scale-95"
+            >
+              <span className="relative z-10">Start Season</span>
+            </button>
+            <button
+              onClick={() => { setUsername(savedName); setStep('username'); }}
+              className="text-xs text-gray-600 hover:text-gray-400 transition-colors mt-1"
+            >
+              Change name
+            </button>
+          </div>
+        )}
 
-        {/* Feature chips */}
+        {/* CTA — new user */}
+        {!savedName && step === 'cta' && (
+          <button
+            onClick={() => setStep('username')}
+            className="group relative px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] active:scale-95"
+          >
+            <span className="relative z-10">Start Season</span>
+          </button>
+        )}
+
+        {/* Username input step */}
+        {step === 'username' && (
+          <form onSubmit={handleSubmit} className="flex flex-col items-center gap-3 w-full max-w-xs">
+            <p className="text-gray-400 text-sm">Enter your name to continue</p>
+            <input
+              autoFocus
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value.slice(0, 30))}
+              placeholder="Your name or handle"
+              className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 text-center font-semibold"
+            />
+            <div className="flex gap-3 w-full">
+              {savedName && (
+                <button type="button" onClick={() => setStep('cta')}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-700 text-gray-400 hover:text-white font-semibold text-sm transition-colors">
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={!username.trim()}
+                className="flex-1 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                Let's go
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Feature chips + Leaderboard */}
         <div className="mt-16 flex flex-wrap justify-center gap-3 text-sm text-gray-500">
           {['Transfer Market', 'Pick Your Formation', 'Season Simulation', 'Monte Carlo Outlook'].map(f => (
             <span key={f} className="px-3 py-1 rounded-full border border-gray-700 bg-gray-800/50">
@@ -75,6 +145,12 @@ export default function LandingPage({ onStart }) {
             </span>
           ))}
         </div>
+        <button
+          onClick={onLeaderboard}
+          className="mt-5 text-xs text-gray-600 hover:text-emerald-400 transition-colors font-semibold tracking-wide"
+        >
+          🏆 Global Leaderboard
+        </button>
       </div>
 
       {/* Bottom glow */}

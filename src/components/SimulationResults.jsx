@@ -4,6 +4,7 @@ import { simulateSeason, runProjectedOutlook } from '../utils/simulation.js';
 import { CLUB_COLORS } from '../data/budgets.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
 import { pName, pPos } from '../utils/playerName.js';
+import { saveSession } from '../lib/saveSession.js';
 
 const TABS = ['Overview', 'Season Stats', 'My Matches'];
 
@@ -57,7 +58,7 @@ function BarStat({ label, pct, color, note }) {
   );
 }
 
-export default function SimulationResults({ club, squad, allPlayers, transfers, formation, lineup, roles, onPlayAgain }) {
+export default function SimulationResults({ club, squad, allPlayers, transfers, formation, lineup, roles, username, startingBudget, budgetRemaining, onPlayAgain, onLeaderboard }) {
   const [tab, setTab]       = useState('Overview');
   const [results, setResults] = useState(null);
   const [outlook, setOutlook] = useState(null);
@@ -75,6 +76,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
       setResults(season);
       setOutlook(proj);
       setLoading(false);
+      saveSession({ username, club, results: season, transfers, formation, startingBudget, budgetRemaining });
     }, 60);
   }, []);
 
@@ -128,10 +130,16 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                 <div className="text-xs" style={{ color: zoneColor }}>{zoneLabel}</div>
               </div>
             )}
-            <button onClick={onPlayAgain}
-              className="px-4 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white text-sm font-semibold transition-colors">
-              Play Again
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={onLeaderboard}
+                className="px-4 py-2 rounded-xl border border-emerald-700/50 text-emerald-400 hover:text-emerald-300 text-sm font-semibold transition-colors">
+                🏆 Leaderboard
+              </button>
+              <button onClick={onPlayAgain}
+                className="px-4 py-2 rounded-xl border border-gray-700 text-gray-400 hover:text-white text-sm font-semibold transition-colors">
+                Play Again
+              </button>
+            </div>
           </div>
         </div>
 
