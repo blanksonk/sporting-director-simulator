@@ -14,6 +14,14 @@ function fmt(v) {
   return `£${(v / 1_000).toFixed(0)}K`;
 }
 
+function zoneColor(pos) {
+  if (pos === 1)    return '#f59e0b'; // Champion — gold
+  if (pos <= 4)     return '#3b82f6'; // Champions League — blue
+  if (pos <= 6)     return '#f97316'; // Europa League — orange
+  if (pos >= 18)    return '#ef4444'; // Relegation — red
+  return null;
+}
+
 function ordinal(n) {
   if (n === 11 || n === 12 || n === 13) return `${n}th`;
   const r = n % 10;
@@ -360,27 +368,29 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
             <div>
               <h2 className="text-base font-black text-white mb-3 uppercase tracking-wide">Final League Table</h2>
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
-                <div className="grid text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 py-2 bg-gray-800/40"
-                  style={{ gridTemplateColumns: '32px 28px 1fr 26px 26px 26px 26px 32px 32px 32px 36px' }}>
-                  <span></span><span>#</span><span>Club</span>
+                <div className="grid text-[10px] font-bold text-gray-500 uppercase tracking-wider py-2 bg-gray-800/40"
+                  style={{ gridTemplateColumns: '4px 28px 20px 1fr 26px 26px 26px 26px 32px 32px 32px 36px' }}>
+                  <span></span><span></span><span>#</span><span className="pl-1">Club</span>
                   <span className="text-center">P</span><span className="text-center">W</span>
                   <span className="text-center">D</span><span className="text-center">L</span>
                   <span className="text-center">GF</span><span className="text-center">GA</span>
                   <span className="text-center">GD</span><span className="text-center">Pts</span>
                 </div>
-                {table.map((row, i) => {
+                {table.map((row) => {
                   const isUser = row.club === club;
-                  const zc = i < 4 ? '#3b82f6' : i >= 17 ? '#ef4444' : 'transparent';
+                  const zc = zoneColor(row.position);
                   return (
-                    <div key={row.club} className="grid items-center px-3 py-2 border-t border-gray-800/40 text-sm"
+                    <div key={row.club} className="grid items-center py-2 border-t border-gray-800/40 text-sm"
                       style={{
-                        gridTemplateColumns: '28px 20px 1fr 26px 26px 26px 26px 32px 32px 32px 36px',
+                        gridTemplateColumns: '4px 28px 20px 1fr 26px 26px 26px 26px 32px 32px 32px 36px',
                         backgroundColor: isUser ? `${color}12` : undefined,
                       }}>
-                      <div className="flex items-center">
+                      {/* Zone colour strip */}
+                      <div className="self-stretch" style={{ backgroundColor: zc ?? 'transparent' }} />
+                      <div className="flex items-center pl-2">
                         <ClubLogo club={row.club} size={5} />
                       </div>
-                      <span className="text-xs font-bold" style={{ color: isUser ? color : '#6b7280' }}>{row.position}</span>
+                      <span className="text-xs font-bold" style={{ color: zc ?? (isUser ? color : '#6b7280') }}>{row.position}</span>
                       <span className="text-xs font-semibold truncate" style={{ color: isUser ? color : '#d1d5db' }}>
                         {row.club}{isUser ? ' ◀' : ''}
                       </span>
@@ -395,9 +405,11 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                   );
                 })}
               </div>
-              <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                <span><span className="inline-block w-2 h-2 rounded-sm bg-blue-500 mr-1" />Champions League</span>
-                <span><span className="inline-block w-2 h-2 rounded-sm bg-red-500 mr-1" />Relegation</span>
+              <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                <span><span className="inline-block w-2 h-4 rounded-sm bg-yellow-400 mr-1.5 align-middle" />Champion</span>
+                <span><span className="inline-block w-2 h-4 rounded-sm bg-blue-500 mr-1.5 align-middle" />Champions League</span>
+                <span><span className="inline-block w-2 h-4 rounded-sm bg-orange-500 mr-1.5 align-middle" />Europa League</span>
+                <span><span className="inline-block w-2 h-4 rounded-sm bg-red-500 mr-1.5 align-middle" />Relegation</span>
               </div>
             </div>
 

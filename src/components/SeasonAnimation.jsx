@@ -4,6 +4,14 @@ import { simulateSeason } from '../utils/simulation.js';
 import { CLUB_COLORS } from '../data/budgets.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
 
+function zoneColor(pos) {
+  if (pos === 1)  return '#f59e0b';
+  if (pos <= 4)   return '#3b82f6';
+  if (pos <= 6)   return '#f97316';
+  if (pos >= 18)  return '#ef4444';
+  return null;
+}
+
 function ClubLogo({ club, size = 5 }) {
   const [failed, setFailed] = useState(false);
   const logo = CLUB_LOGOS[club];
@@ -184,37 +192,42 @@ export default function SeasonAnimation({
                     const isUser = row.club === userClub;
                     const prev = prevPositions[row.club];
                     const delta = prev != null ? prev - row.position : 0;
+                    const zc = zoneColor(row.position);
                     return (
                       <div
                         key={row.club}
-                        className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-800/30 last:border-0 text-xs"
+                        className="flex items-center border-b border-gray-800/30 last:border-0 text-xs overflow-hidden"
                         style={isUser ? { backgroundColor: `${color}15` } : {}}
                       >
-                        {/* Position arrow */}
-                        <span className="w-3 text-[10px] shrink-0 text-center">
-                          {delta > 0 ? <span className="text-emerald-400">▲</span>
-                            : delta < 0 ? <span className="text-red-400">▼</span>
-                            : <span className="text-gray-700">–</span>}
-                        </span>
-                        {/* Position number */}
-                        <span className="w-5 text-center font-bold shrink-0"
-                          style={{ color: row.position <= 4 ? '#3b82f6' : row.position >= 18 ? '#ef4444' : isUser ? color : '#6b7280' }}>
-                          {row.position}
-                        </span>
-                        <ClubLogo club={row.club} size={4} />
-                        <span className="flex-1 truncate font-semibold"
-                          style={{ color: isUser ? color : '#d1d5db' }}>
-                          {row.club}
-                        </span>
-                        <span className="text-gray-500 w-6 text-center tabular-nums">{row.p}</span>
-                        <span className="w-8 text-center tabular-nums"
-                          style={{ color: row.gd > 0 ? '#10b981' : row.gd < 0 ? '#ef4444' : '#6b7280' }}>
-                          {row.gd > 0 ? `+${row.gd}` : row.gd}
-                        </span>
-                        <span className="w-7 text-center font-black tabular-nums"
-                          style={{ color: isUser ? color : '#f3f4f6' }}>
-                          {row.pts}
-                        </span>
+                        {/* Zone colour strip */}
+                        <div className="w-1 self-stretch shrink-0" style={{ backgroundColor: zc ?? 'transparent' }} />
+                        <div className="flex items-center gap-2 flex-1 px-2 py-1.5">
+                          {/* Position arrow */}
+                          <span className="w-3 text-[10px] shrink-0 text-center">
+                            {delta > 0 ? <span className="text-emerald-400">▲</span>
+                              : delta < 0 ? <span className="text-red-400">▼</span>
+                              : <span className="text-gray-700">–</span>}
+                          </span>
+                          {/* Position number */}
+                          <span className="w-5 text-center font-bold shrink-0"
+                            style={{ color: zc ?? (isUser ? color : '#6b7280') }}>
+                            {row.position}
+                          </span>
+                          <ClubLogo club={row.club} size={4} />
+                          <span className="flex-1 truncate font-semibold"
+                            style={{ color: isUser ? color : '#d1d5db' }}>
+                            {row.club}
+                          </span>
+                          <span className="text-gray-500 w-6 text-center tabular-nums">{row.p}</span>
+                          <span className="w-8 text-center tabular-nums"
+                            style={{ color: row.gd > 0 ? '#10b981' : row.gd < 0 ? '#ef4444' : '#6b7280' }}>
+                            {row.gd > 0 ? `+${row.gd}` : row.gd}
+                          </span>
+                          <span className="w-7 text-center font-black tabular-nums"
+                            style={{ color: isUser ? color : '#f3f4f6' }}>
+                            {row.pts}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
