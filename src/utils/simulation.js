@@ -1,6 +1,57 @@
 import { squadStrength } from './strength.js';
 import { HOME_ADVANTAGE, LEAGUE_AVG_GOALS } from '../data/budgets.js';
 
+// ── Age modifier ──────────────────────────────────────────────────────────────
+// Returns a multiplier on a player's overall rating based on age.
+function ageModifier(age) {
+  if (!age || age <= 0) return 1.0;
+  if (age <= 17) return 0.88;
+  if (age <= 20) return 0.95;
+  if (age <= 23) return 0.98;
+  if (age <= 29) return 1.00; // peak
+  if (age <= 32) return 0.97;
+  if (age <= 35) return 0.92;
+  return 0.85;
+}
+
+// ── Effective overall for a single player in a single match ──────────────────
+// Combines age modifier + fatigue penalty + young-player variance.
+function effectiveOverall(player, fatigueScore) {
+  const ageMult = ageModifier(player.age);
+  const fatiguePenalty = Math.min(0.12, fatigueScore * 0.004);
+  let eff = player.overall * ageMult * (1 - fatiguePenalty);
+
+  // Young players (≤20) have ±4 per-match variance — talented but inconsistent
+  if (player.age && player.age <= 20) {
+    eff += (Math.random() - 0.5) * 8;
+  }
+
+  return Math.max(40, Math.round(eff));
+}
+
+// ── Apply current fatigue map to a squad, returning effective-rated copies ───
+function applyFatigue(squad, fatigueMap) {
+  return squad.map(p => ({
+    ...p,
+    overall: effectiveOverall(p, fatigueMap.get(p.id) ?? 0),
+  }));
+}
+
+// ── Update fatigue after a match ─────────────────────────────────────────────
+// Top 11 by current effective rating are assumed to have played (+1 fatigue).
+// Others rested (−0.5, floor 0).
+function updateFatigue(squad, fatigueMap) {
+  const withEff = squad.map(p => ({
+    id: p.id,
+    eff: effectiveOverall(p, fatigueMap.get(p.id) ?? 0),
+  })).sort((a, b) => b.eff - a.eff);
+
+  withEff.forEach(({ id }, i) => {
+    const cur = fatigueMap.get(id) ?? 0;
+    fatigueMap.set(id, i < 11 ? cur + 1 : Math.max(0, cur - 0.5));
+  });
+}
+
 // ── Poisson sample via inverse transform ──────────────────────────────────────
 function poisson(lambda) {
   const L = Math.exp(-lambda);
@@ -153,11 +204,18 @@ export function simulateSeason(squads, userClub, roles) {
   clubs.forEach(c => table[c] = { club: c, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 });
 
   // Per-player stats across ALL clubs (for league top scorers/assisters)
-  const leaguePlayerStats = new Map(); // playerId → { player, club, goals, assists, yellowCards, saves }
+  // Uses original player objects so displayed ratings are unaffected by fatigue
+  const leaguePlayerStats = new Map();
   clubs.forEach(club => {
     (squads.get(club) || []).forEach(p => {
       leaguePlayerStats.set(p.id, { player: p, club, goals: 0, assists: 0, yellowCards: 0, saves: 0 });
     });
+  });
+
+  // Fatigue map: playerId → accumulated fatigue score
+  const fatigueMap = new Map();
+  clubs.forEach(club => {
+    (squads.get(club) || []).forEach(p => fatigueMap.set(p.id, 0));
   });
 
   const userFixtures = [];
@@ -165,14 +223,23 @@ export function simulateSeason(squads, userClub, roles) {
 
   fixtures.forEach(({ matchweek, games }) => {
     games.forEach(([home, away]) => {
-      const homeSquad = squads.get(home) || [];
-      const awaySquad = squads.get(away) || [];
+      const homeSquadRaw = squads.get(home) || [];
+      const awaySquadRaw = squads.get(away) || [];
+
+      // Apply age + fatigue to get effective squads for this match
+      const homeSquad = applyFatigue(homeSquadRaw, fatigueMap);
+      const awaySquad = applyFatigue(awaySquadRaw, fatigueMap);
+
       const homeRoles = home === userClub ? roles : null;
       const awayRoles = away === userClub ? roles : null;
 
       const { homeGoals, awayGoals, homeEvents, awayEvents, homeYellows, awayYellows, homeGkSaves, awayGkSaves } = simulateMatch(
         homeSquad, awaySquad, homeRoles, awayRoles
       );
+
+      // Update fatigue based on who played
+      updateFatigue(homeSquadRaw, fatigueMap);
+      updateFatigue(awaySquadRaw, fatigueMap);
 
       // Update table
       table[home].p++; table[away].p++;
@@ -248,11 +315,32 @@ export function simulateSeason(squads, userClub, roles) {
   return { table: sortedTable, userFixtures, leagueTopScorers, leagueTopAssisters, userStats };
 }
 
+// ── Effective season-averaged strength (for fast Monte Carlo) ────────────────
+// Applies age modifiers and a depth/rotation bonus without per-match tracking.
+function effectiveSquadStrength(squad) {
+  if (!squad.length) return squadStrength(squad);
+
+  // Apply age modifier to each player's overall
+  const aged = squad.map(p => ({ ...p, overall: Math.round(p.overall * ageModifier(p.age)) }));
+
+  // Depth bonus: extra players above 11 reduce average fatigue across the season.
+  // Each player beyond 11 saves the starters ~0.5 fatigue per match on average.
+  // Cap bonus at 6% for a 25-man squad.
+  const depth = Math.max(0, squad.length - 11);
+  const depthBonus = Math.min(0.06, depth * 0.008);
+
+  const base = squadStrength(aged);
+  return {
+    attack:  base.attack  * (1 + depthBonus),
+    defense: base.defense * (1 + depthBonus),
+  };
+}
+
 // ── Monte Carlo projected outlook (1,000 runs, no stat tracking for speed) ───
 export function runProjectedOutlook(squads, userClub, roles, runs = 1000) {
   const clubs = [...squads.keys()];
   const strengths = new Map();
-  clubs.forEach(c => strengths.set(c, squadStrength(squads.get(c) || [])));
+  clubs.forEach(c => strengths.set(c, effectiveSquadStrength(squads.get(c) || [])));
 
   const homeMorale = roles?.captain ? 1.02 : 1;
 
