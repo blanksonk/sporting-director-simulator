@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import HowToPlay from './HowToPlay.jsx';
 
 export default function LandingPage({ onStart, onLeaderboard }) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState('cta'); // 'cta' | 'username'
   const [savedName, setSavedName] = useState('');
   const [username, setUsername] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80);
@@ -27,6 +29,7 @@ export default function LandingPage({ onStart, onLeaderboard }) {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+      {showGuide && <HowToPlay onClose={() => setShowGuide(false)} />}
       {/* Animated background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0f1117] via-[#1a1f2e] to-[#0f1117]" />
       <div className="absolute inset-0 opacity-30"
@@ -145,12 +148,21 @@ export default function LandingPage({ onStart, onLeaderboard }) {
             </span>
           ))}
         </div>
-        <button
-          onClick={onLeaderboard}
-          className="mt-5 text-xs text-gray-600 hover:text-emerald-400 transition-colors font-semibold tracking-wide"
-        >
-          🏆 Global Leaderboard
-        </button>
+        <div className="mt-5 flex items-center gap-4">
+          <button
+            onClick={onLeaderboard}
+            className="text-xs text-gray-600 hover:text-emerald-400 transition-colors font-semibold tracking-wide"
+          >
+            🏆 Global Leaderboard
+          </button>
+          <span className="text-gray-700">·</span>
+          <button
+            onClick={() => setShowGuide(true)}
+            className="text-xs text-gray-600 hover:text-gray-300 transition-colors font-semibold tracking-wide"
+          >
+            How to Play
+          </button>
+        </div>
       </div>
 
       {/* Bottom glow */}
