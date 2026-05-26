@@ -96,7 +96,7 @@ export default function TransferRoom({
   }, [searchQuery, squad, allPlayers, transfers.rejected]);
 
   const MIN_REQS = { GK: 1, DEF: 3, MID: 3, FWD: 2 };
-  const MIN_TOTAL = 14;
+  const MIN_TOTAL = 18;
 
   function squadIssues(s) {
     const issues = [];
@@ -114,9 +114,9 @@ export default function TransferRoom({
 
   function handleSell(player) {
     const afterSell = squad.filter(p => p.id !== player.id);
-    if (afterSell.length < 11) {
+    if (afterSell.length < MIN_TOTAL) {
       setSellTarget(null);
-      showToast('Cannot drop below 11 players', 'error');
+      showToast(`Cannot drop below ${MIN_TOTAL} players`, 'error');
       return;
     }
     setSquad(afterSell);
@@ -252,8 +252,11 @@ export default function TransferRoom({
                         </div>
                       </div>
                       <button
-                        onClick={() => setSellTarget(player)}
-                        className="sm:opacity-0 sm:group-hover:opacity-100 px-3 py-1 text-xs font-semibold rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all"
+                        onClick={() => squad.length > MIN_TOTAL ? setSellTarget(player) : showToast(`Cannot drop below ${MIN_TOTAL} players`, 'error')}
+                        className="sm:opacity-0 sm:group-hover:opacity-100 px-3 py-1 text-xs font-semibold rounded-lg border transition-all"
+                        style={squad.length > MIN_TOTAL
+                          ? { borderColor: 'rgba(239,68,68,0.4)', color: '#f87171' }
+                          : { borderColor: 'rgba(107,114,128,0.3)', color: '#4b5563', cursor: 'not-allowed' }}
                       >
                         Sell
                       </button>
