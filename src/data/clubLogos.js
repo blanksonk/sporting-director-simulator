@@ -12,7 +12,7 @@ export const CLUB_LOGOS = {
   'Crystal Palace':      `${BASE}/354.svg`,
   'Everton':             `${BASE}/62.svg`,
   'Fulham':              `${BASE}/63.svg`,
-  'Hull City':           `${BASE}/355.svg`,
+  'Hull City':           '/hull-city.svg',
   'Ipswich Town':        `${BASE}/349.svg`,
   'Leeds United':        `${BASE}/341.svg`,
   'Liverpool':           `${BASE}/64.svg`,
