@@ -211,7 +211,7 @@ export default function TransferRoom({
                       </div>
                       <button
                         onClick={() => setSellTarget(player)}
-                        className="opacity-0 group-hover:opacity-100 px-3 py-1 text-xs font-semibold rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all"
+                        className="sm:opacity-0 sm:group-hover:opacity-100 px-3 py-1 text-xs font-semibold rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all"
                       >
                         Sell
                       </button>
@@ -224,7 +224,7 @@ export default function TransferRoom({
         </div>
 
         {/* Search + stats panel */}
-        <div className="space-y-4">
+        <div className="space-y-4 order-first lg:order-last">
           {/* Search */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
             <h2 className="text-lg font-bold text-white mb-3">Sign a Player</h2>

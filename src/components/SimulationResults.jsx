@@ -89,8 +89,9 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
 
   const { table, userFixtures, leagueTopScorers, leagueTopAssisters, userStats } = results;
   const userRow = table.find(r => r.club === club);
-  const myTopScorer   = leagueTopScorers.find(s => s.club === club);
-  const myTopAssister = leagueTopAssisters.find(s => s.club === club);
+  const userStatsArr  = Object.values(userStats);
+  const myTopScorer   = [...userStatsArr].sort((a, b) => b.goals   - a.goals   || b.assists - a.assists)[0];
+  const myTopAssister = [...userStatsArr].sort((a, b) => b.assists - a.assists || b.goals   - a.goals  )[0];
   const leagueTopScorer = leagueTopScorers[0];
 
   // Season record
