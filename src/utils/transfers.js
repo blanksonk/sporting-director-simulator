@@ -34,12 +34,21 @@ export function resolveTransferChain(allPlayers, userSquad, userClub, boughtPlay
     }
   });
 
-  // Track incomings per club
+  // Track incomings and outgoings per club
   const incomings = new Map();
-  PL_CLUBS.forEach(c => incomings.set(c, []));
+  const outgoings = new Map();
+  PL_CLUBS.forEach(c => { incomings.set(c, []); outgoings.set(c, []); });
 
-  // Add user's bought players to user's incomings
+  // Add user's bought players to user's incomings; sold players to user's outgoings
   boughtPlayers.forEach(p => incomings.get(userClub).push(p));
+  soldPlayers.forEach(p => outgoings.get(userClub).push(p));
+
+  // Players the user bought leave their old clubs — those are outgoings for those clubs
+  boughtPlayers.forEach(player => {
+    if (PL_CLUBS.has(player.club) && player.club !== userClub) {
+      outgoings.get(player.club).push(player);
+    }
+  });
 
   // Pool of available replacement players — non-PL players from the full dataset
   const replacementPool = [
@@ -94,9 +103,10 @@ export function resolveTransferChain(allPlayers, userSquad, userClub, boughtPlay
 
     // If replacement came from a PL club, that club now needs a replacement too
     if (PL_CLUBS.has(replacement.club) && replacement.club !== club) {
+      outgoings.get(replacement.club).push(replacement);
       queue.push({ club: replacement.club, position });
     }
   }
 
-  return { updatedSquads: squads, incomings };
+  return { updatedSquads: squads, incomings, outgoings };
 }

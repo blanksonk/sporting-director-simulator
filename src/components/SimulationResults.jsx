@@ -6,7 +6,7 @@ import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
 import { pName, pPos } from '../utils/playerName.js';
 import { saveSession } from '../lib/saveSession.js';
 
-const TABS = ['Overview', 'Season Stats', 'My Matches'];
+const TABS = ['Overview', 'Season Stats', 'My Matches', 'Transfer Window'];
 
 function fmt(v) {
   if (!v) return '£0';
@@ -44,6 +44,62 @@ function StatCard({ label, value, sub, color }) {
   );
 }
 
+function TransferClubCard({ club, ins, outs, isUser, color }) {
+  const [open, setOpen] = useState(isUser);
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden"
+      style={isUser ? { borderLeftWidth: 3, borderLeftColor: color } : {}}>
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/30 transition-colors"
+        onClick={() => setOpen(o => !o)}
+      >
+        <div className="flex items-center gap-2">
+          <ClubLogo club={club} size={5} />
+          <span className="font-bold text-sm" style={{ color: isUser ? color : '#e5e7eb' }}>
+            {club}{isUser ? ' (You)' : ''}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
+          {ins.length > 0 && <span className="text-emerald-400 font-semibold">+{ins.length} in</span>}
+          {outs.length > 0 && <span className="text-red-400 font-semibold">-{outs.length} out</span>}
+          <span className="text-gray-600">{open ? '▲' : '▼'}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="grid grid-cols-2 divide-x divide-gray-800 border-t border-gray-800">
+          <div className="px-4 py-3 min-h-[60px]">
+            <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">In</div>
+            {ins.length === 0
+              ? <p className="text-xs text-gray-600 italic">None</p>
+              : ins.map((p, i) => (
+                <div key={p.id ?? i} className="text-xs text-gray-300 py-0.5 flex items-center gap-1">
+                  <span className="text-emerald-500">+</span>
+                  <span className="font-semibold">{pName(p)}</span>
+                  <span className="text-gray-600 text-[10px]">{pPos(p)} · {p.overall}</span>
+                </div>
+              ))
+            }
+          </div>
+          <div className="px-4 py-3 min-h-[60px]">
+            <div className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-2">Out</div>
+            {outs.length === 0
+              ? <p className="text-xs text-gray-600 italic">None</p>
+              : outs.map((p, i) => (
+                <div key={p.id ?? i} className="text-xs text-gray-300 py-0.5 flex items-center gap-1">
+                  <span className="text-red-500">−</span>
+                  <span className="font-semibold">{pName(p)}</span>
+                  <span className="text-gray-600 text-[10px]">{pPos(p)} · {p.overall}</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BarStat({ label, pct, color, note }) {
   return (
     <div className="space-y-1">
@@ -62,6 +118,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
   const [tab, setTab]       = useState('Overview');
   const [results, setResults] = useState(null);
   const [outlook, setOutlook] = useState(null);
+  const [leagueTransfers, setLeagueTransfers] = useState(null);
   const [loading, setLoading] = useState(true);
   const color   = CLUB_COLORS[club] ?? '#10b981';
   const didRun  = useRef(false);
@@ -70,11 +127,22 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
     if (didRun.current) return;
     didRun.current = true;
     setTimeout(() => {
-      const { updatedSquads } = resolveTransferChain(allPlayers, squad, club, transfers.bought, transfers.sold);
+      const { updatedSquads, incomings, outgoings } = resolveTransferChain(allPlayers, squad, club, transfers.bought, transfers.sold);
       const season = simulateSeason(updatedSquads, club, roles);
       const proj   = runProjectedOutlook(updatedSquads, club, roles, 1000);
       setResults(season);
       setOutlook(proj);
+      // Build per-club transfer summary, sorted: user first, then by activity volume
+      const clubs = [...incomings.keys()];
+      const summary = clubs
+        .map(c => ({ club: c, in: incomings.get(c) ?? [], out: outgoings.get(c) ?? [] }))
+        .filter(r => r.in.length > 0 || r.out.length > 0)
+        .sort((a, b) => {
+          if (a.club === club) return -1;
+          if (b.club === club) return 1;
+          return (b.in.length + b.out.length) - (a.in.length + a.out.length);
+        });
+      setLeagueTransfers(summary);
       setLoading(false);
       saveSession({ username, club, results: season, transfers, formation, startingBudget, budgetRemaining });
     }, 60);
@@ -413,6 +481,30 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                   ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TAB 4: TRANSFER WINDOW
+        ═══════════════════════════════════════════════════════════════════ */}
+        {tab === 'Transfer Window' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-base font-black text-white uppercase tracking-wide">Summer Transfer Window</h2>
+              <span className="text-xs text-gray-500">{leagueTransfers?.length ?? 0} clubs active</span>
+            </div>
+
+            {(!leagueTransfers || leagueTransfers.length === 0) && (
+              <div className="text-center py-16 text-gray-500">No transfer activity across the league</div>
+            )}
+
+            {leagueTransfers?.map(({ club: c, in: ins, out: outs }) => {
+              const isUser = c === club;
+              const cColor = CLUB_COLORS[c] ?? '#6b7280';
+              return (
+                <TransferClubCard key={c} club={c} ins={ins} outs={outs} isUser={isUser} color={cColor} />
+              );
+            })}
           </div>
         )}
 
