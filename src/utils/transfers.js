@@ -19,39 +19,32 @@ export function buildInitialSquads(allPlayers) {
   return squads;
 }
 
-export function resolveTransferChain(allPlayers, userSquad, userClub, boughtPlayers, soldPlayers) {
-  // Start with a fresh squad map from all players
-  const squads = buildInitialSquads(allPlayers);
+const MAX_CHAIN_DEPTH = 5;
 
-  // Apply user's transfers to squad map
+export function resolveTransferChain(allPlayers, userSquad, userClub, boughtPlayers, soldPlayers) {
+  const squads = buildInitialSquads(allPlayers);
   squads.set(userClub, [...userSquad]);
 
-  // Remove bought players from their old clubs
-  boughtPlayers.forEach(player => {
-    if (PL_CLUBS.has(player.club) && player.club !== userClub) {
-      const old = squads.get(player.club) || [];
-      squads.set(player.club, old.filter(p => p.id !== player.id));
-    }
-  });
-
-  // Track incomings and outgoings per club
   const incomings = new Map();
   const outgoings = new Map();
   PL_CLUBS.forEach(c => { incomings.set(c, []); outgoings.set(c, []); });
 
-  // Add user's bought players to user's incomings; sold players to user's outgoings
-  boughtPlayers.forEach(p => incomings.get(userClub).push(p));
-  soldPlayers.forEach(p => outgoings.get(userClub).push(p));
-
-  // Players the user bought leave their old clubs — those are outgoings for those clubs
-  boughtPlayers.forEach(player => {
-    if (PL_CLUBS.has(player.club) && player.club !== userClub) {
-      outgoings.get(player.club).push(player);
+  // Apply user transfers
+  boughtPlayers.forEach(p => {
+    incomings.get(userClub).push(p);
+    if (PL_CLUBS.has(p.club) && p.club !== userClub) {
+      squads.set(p.club, (squads.get(p.club) || []).filter(x => x.id !== p.id));
+      outgoings.get(p.club).push(p);
     }
   });
+  soldPlayers.forEach(p => outgoings.get(userClub).push(p));
 
-  // Pool of available replacement players — non-PL players from the full dataset
-  const replacementPool = [
+  // IDs unavailable to rival clubs (user's current squad)
+  const takenIds = new Set(userSquad.map(p => p.id));
+
+  // Full non-PL pool (everyone not currently assigned to a PL squad)
+  // PL players can also be targeted — their club then triggers a chain reaction
+  const nonPLPool = [
     ...FREEAGENT_POOL,
     ...allPlayers.filter(p => {
       const inPL = p.isPL !== undefined ? p.isPL : PL_CLUBS.has(p.club);
@@ -59,54 +52,97 @@ export function resolveTransferChain(allPlayers, userSquad, userClub, boughtPlay
     }),
   ];
 
-  // For each PL club that lost a player, find a replacement
-  // Chain: if replacement is from a PL club, that club also needs a replacement
-  const clubsNeedingReplacement = new Map(); // club → position needed
+  // transferLog: one entry per chain move (NOT including user's own transfers)
+  // { club, playerIn, fromClub, depth }
+  const transferLog = [];
 
-  boughtPlayers.forEach(player => {
-    if (PL_CLUBS.has(player.club) && player.club !== userClub) {
-      const prev = clubsNeedingReplacement.get(player.club) || [];
-      prev.push(player.position);
-      clubsNeedingReplacement.set(player.club, prev);
-    }
-  });
+  // Queue: { club, position, depth }
+  const queue = boughtPlayers
+    .filter(p => PL_CLUBS.has(p.club) && p.club !== userClub)
+    .map(p => ({ club: p.club, position: p.position, depth: 1 }));
 
-  const visited = new Set();
-  const queue = [...clubsNeedingReplacement.entries()].flatMap(([club, positions]) =>
-    positions.map(pos => ({ club, position: pos }))
-  );
+  const processed = new Set();
 
   while (queue.length > 0) {
-    const { club, position } = queue.shift();
-    const key = `${club}-${position}`;
-    if (visited.has(key)) continue;
-    visited.add(key);
+    const { club, position, depth } = queue.shift();
+    if (depth > MAX_CHAIN_DEPTH) continue;
+
+    const key = `${club}|${position}|${depth}`;
+    if (processed.has(key)) continue;
+    processed.add(key);
 
     const currentSquad = squads.get(club) || [];
-    const avgRating = currentSquad.length
+    const avgRating = currentSquad.length > 0
       ? currentSquad.reduce((s, p) => s + p.overall, 0) / currentSquad.length
       : 75;
 
-    // Find best replacement from pool (closest rating, same position)
-    const candidates = replacementPool.filter(p => p.position === position);
-    if (candidates.length === 0) continue;
+    // 1. Look for best non-PL player within ±10 OVR (no chain triggered)
+    const nonPLCandidates = nonPLPool
+      .filter(p => p.position === position && !takenIds.has(p.id))
+      .sort((a, b) => Math.abs(a.overall - avgRating) - Math.abs(b.overall - avgRating));
 
-    candidates.sort((a, b) =>
-      Math.abs(a.overall - avgRating) - Math.abs(b.overall - avgRating)
-    );
+    const bestNonPL = nonPLCandidates[0];
 
-    const replacement = candidates[0];
-    replacementPool.splice(replacementPool.indexOf(replacement), 1);
+    // 2. Also look at PL clubs (can trigger a chain)
+    const plCandidates = allPlayers
+      .filter(p => {
+        const inPL = p.isPL !== undefined ? p.isPL : PL_CLUBS.has(p.club);
+        return inPL &&
+          p.position === position &&
+          p.club !== club &&
+          p.club !== userClub &&
+          !takenIds.has(p.id) &&
+          !currentSquad.some(cp => cp.id === p.id);
+      })
+      .sort((a, b) => Math.abs(a.overall - avgRating) - Math.abs(b.overall - avgRating));
+
+    const bestPL = plCandidates[0];
+
+    let replacement = null;
+    let fromPLClub = false;
+
+    if (!bestNonPL && !bestPL) continue;
+
+    if (!bestNonPL) {
+      replacement = bestPL;
+      fromPLClub = true;
+    } else if (!bestPL) {
+      replacement = bestNonPL;
+    } else {
+      // Prefer PL player if they're meaningfully closer in rating (within 3 OVR better match)
+      const nonPLDiff = Math.abs(bestNonPL.overall - avgRating);
+      const plDiff = Math.abs(bestPL.overall - avgRating);
+      if (plDiff < nonPLDiff - 3) {
+        replacement = bestPL;
+        fromPLClub = true;
+      } else {
+        replacement = bestNonPL;
+      }
+    }
+
+    // Mark taken and update squad
+    takenIds.add(replacement.id);
+    if (!fromPLClub) {
+      // Remove from nonPL pool so it can't be double-signed
+      const idx = nonPLPool.findIndex(p => p.id === replacement.id);
+      if (idx !== -1) nonPLPool.splice(idx, 1);
+    }
 
     squads.set(club, [...currentSquad, replacement]);
     incomings.get(club).push(replacement);
+    transferLog.push({ club, playerIn: replacement, fromClub: replacement.club, depth });
 
-    // If replacement came from a PL club, that club now needs a replacement too
-    if (PL_CLUBS.has(replacement.club) && replacement.club !== club) {
+    // If from a PL club, that club now needs a replacement
+    if (fromPLClub && PL_CLUBS.has(replacement.club) && replacement.club !== userClub) {
+      const fromSquad = squads.get(replacement.club) || [];
+      squads.set(replacement.club, fromSquad.filter(p => p.id !== replacement.id));
       outgoings.get(replacement.club).push(replacement);
-      queue.push({ club: replacement.club, position });
+
+      if (depth < MAX_CHAIN_DEPTH) {
+        queue.push({ club: replacement.club, position, depth: depth + 1 });
+      }
     }
   }
 
-  return { updatedSquads: squads, incomings, outgoings };
+  return { updatedSquads: squads, incomings, outgoings, transferLog };
 }

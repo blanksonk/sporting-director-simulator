@@ -114,7 +114,7 @@ function BarStat({ label, pct, color, note }) {
   );
 }
 
-export default function SimulationResults({ club, squad, allPlayers, transfers, formation, lineup, roles, username, startingBudget, budgetRemaining, onPlayAgain, onLeaderboard }) {
+export default function SimulationResults({ club, squad, allPlayers, transfers, formation, lineup, roles, username, startingBudget, budgetRemaining, resolvedData, onPlayAgain, onLeaderboard }) {
   const [tab, setTab]       = useState('Overview');
   const [results, setResults] = useState(null);
   const [outlook, setOutlook] = useState(null);
@@ -127,14 +127,15 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
     if (didRun.current) return;
     didRun.current = true;
     setTimeout(() => {
-      const { updatedSquads, incomings, outgoings } = resolveTransferChain(allPlayers, squad, club, transfers.bought, transfers.sold);
+      // Use pre-resolved chain if available (from TransferChainAnimation), else recompute
+      const { updatedSquads, incomings, outgoings } = resolvedData
+        ?? resolveTransferChain(allPlayers, squad, club, transfers.bought, transfers.sold);
       const season = simulateSeason(updatedSquads, club, roles);
       const proj   = runProjectedOutlook(updatedSquads, club, roles, 1000);
       setResults(season);
       setOutlook(proj);
-      // Build per-club transfer summary, sorted: user first, then by activity volume
-      const clubs = [...incomings.keys()];
-      const summary = clubs
+      const clubList = [...incomings.keys()];
+      const summary = clubList
         .map(c => ({ club: c, in: incomings.get(c) ?? [], out: outgoings.get(c) ?? [] }))
         .filter(r => r.in.length > 0 || r.out.length > 0)
         .sort((a, b) => {

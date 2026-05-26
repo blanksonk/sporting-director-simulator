@@ -6,6 +6,7 @@ import LandingPage from './components/LandingPage.jsx';
 import TeamSelect from './components/TeamSelect.jsx';
 import SponsorSelect from './components/SponsorSelect.jsx';
 import TransferRoom from './components/TransferRoom.jsx';
+import TransferChainAnimation from './components/TransferChainAnimation.jsx';
 import TacticsRoom from './components/TacticsRoom.jsx';
 import SimulationResults from './components/SimulationResults.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
@@ -32,6 +33,8 @@ export default function App() {
   const [lineup, setLineup]               = useState(_s?.lineup ?? {});
   const [roles, setRoles]                 = useState(_s?.roles ?? {});
   const [simulationResults, setSimulationResults] = useState(_s?.simulationResults ?? null);
+  // resolvedData holds the chain result (Map — not persisted to localStorage)
+  const [resolvedData, setResolvedData] = useState(null);
 
   // Persist game state to localStorage (cleared when returning to landing)
   useEffect(() => {
@@ -76,6 +79,11 @@ export default function App() {
   }
 
   function handleGoToTactics() {
+    setScreen('transferChain');
+  }
+
+  function handleChainComplete(result) {
+    setResolvedData(result);
     setScreen('tacticsRoom');
   }
 
@@ -97,6 +105,7 @@ export default function App() {
     setLineup({});
     setRoles({});
     setSimulationResults(null);
+    setResolvedData(null);
     // username and anon_user_id intentionally kept across resets
   }
 
@@ -144,6 +153,15 @@ export default function App() {
           onSimulate={handleGoToTactics}
         />
       )}
+      {screen === 'transferChain' && (
+        <TransferChainAnimation
+          allPlayers={allPlayers.length > 0 ? allPlayers : MOCK_PLAYERS}
+          userSquad={squad}
+          club={selectedClub}
+          transfers={transfers}
+          onComplete={handleChainComplete}
+        />
+      )}
       {screen === 'tacticsRoom' && (
         <TacticsRoom
           club={selectedClub}
@@ -165,6 +183,7 @@ export default function App() {
           username={username}
           startingBudget={startingBudget}
           budgetRemaining={budget}
+          resolvedData={resolvedData}
           onPlayAgain={handleReset}
           onLeaderboard={() => setScreen('leaderboard')}
         />
