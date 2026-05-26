@@ -26,9 +26,9 @@ function weightedPick(items) {
 // Assister: creative MIDs/FWDs, never the scorer, 78% of goals have an assist
 function pickGoalEvent(squad, roles) {
   const scorerPool = [
-    ...squad.filter(p => p.position === 'FWD').map(p => ({ ...p, w: p.overall ** 2.5 })),
-    ...squad.filter(p => p.position === 'MID').map(p => ({ ...p, w: p.overall ** 2 * 0.35 })),
-    ...squad.filter(p => p.position === 'DEF').map(p => ({ ...p, w: p.overall * 0.04 })),
+    ...squad.filter(p => p.position === 'FWD').map(p => ({ ...p, w: (p.overall / 75) ** 1.5 })),
+    ...squad.filter(p => p.position === 'MID').map(p => ({ ...p, w: (p.overall / 75) ** 1.2 * 0.28 })),
+    ...squad.filter(p => p.position === 'DEF').map(p => ({ ...p, w: (p.overall / 75) * 0.05 })),
   ];
   if (!scorerPool.length) return { scorer: null, assister: null, minute: 1 };
 

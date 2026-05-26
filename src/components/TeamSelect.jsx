@@ -10,19 +10,19 @@ const CLUBS = [
   { name: 'Bournemouth',         emoji: '🍒', slug: 'Bournemouth' },
   { name: 'Chelsea',             emoji: '🔵', slug: 'Chelsea' },
   { name: 'Crystal Palace',      emoji: '🦅', slug: 'Crystal-Palace' },
+  { name: 'Coventry City',       emoji: '🩵', slug: 'Coventry-City' },
   { name: 'Everton',             emoji: '🔵', slug: 'Everton' },
   { name: 'Fulham',              emoji: '⚫', slug: 'Fulham' },
+  { name: 'Hull City',           emoji: '🟠', slug: 'Hull-City' },
   { name: 'Ipswich Town',        emoji: '🔵', slug: 'Ipswich-Town' },
-  { name: 'Leicester City',      emoji: '🦊', slug: 'Leicester-City' },
+  { name: 'Leeds United',        emoji: '⚪', slug: 'Leeds-United' },
   { name: 'Liverpool',           emoji: '🔴', slug: 'Liverpool' },
   { name: 'Manchester City',     emoji: '🩵', slug: 'Manchester-City' },
   { name: 'Manchester United',   emoji: '🔴', slug: 'Manchester-United' },
   { name: 'Newcastle United',    emoji: '⚫', slug: 'Newcastle-United' },
   { name: 'Nottingham Forest',   emoji: '🌲', slug: 'Nottingham-Forest' },
-  { name: 'Southampton',         emoji: '🔴', slug: 'Southampton' },
+  { name: 'Sunderland',          emoji: '🔴', slug: 'Sunderland' },
   { name: 'Tottenham Hotspur',   emoji: '⚪', slug: 'Tottenham-Hotspur' },
-  { name: 'West Ham United',     emoji: '🍷', slug: 'West-Ham-United' },
-  { name: 'Wolves',              emoji: '🐺', slug: 'Wolverhampton-Wanderers' },
 ];
 
 const TIER_LABELS = {

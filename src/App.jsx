@@ -15,7 +15,7 @@ export default function App() {
   const [selectedClub, setSelectedClub] = useState(null);
   const [budget, setBudget] = useState(0);
   const [squad, setSquad] = useState([]);
-  const [transfers, setTransfers] = useState({ bought: [], sold: [] });
+  const [transfers, setTransfers] = useState({ bought: [], sold: [], rejected: [] });
   const [formation, setFormation] = useState('4-3-3');
   const [lineup, setLineup] = useState({});
   const [roles, setRoles] = useState({});
@@ -44,7 +44,7 @@ export default function App() {
   }
 
   function handleSelectSponsor(sponsor) {
-    setBudget(b => b + sponsor.bonus);
+    if (sponsor) setBudget(b => b + sponsor.bonus);
     setScreen('transferRoom');
   }
 

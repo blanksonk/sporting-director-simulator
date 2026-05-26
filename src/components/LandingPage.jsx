@@ -40,7 +40,7 @@ export default function LandingPage({ onStart }) {
       >
         {/* Badge */}
         <div className="mb-6 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-semibold tracking-widest uppercase">
-          Premier League 2024–25
+          Premier League 2026–27
         </div>
 
         {/* Title */}
@@ -57,7 +57,6 @@ export default function LandingPage({ onStart }) {
         {/* Tagline */}
         <p className="text-lg md:text-xl text-gray-400 max-w-md mb-12 leading-relaxed">
           Pick your club. Land the targets. Win the league.<br />
-          <span className="text-gray-500 text-sm">380 games. 1,000 futures.</span>
         </p>
 
         {/* CTA */}

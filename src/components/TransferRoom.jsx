@@ -1,11 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CLUB_COLORS } from '../data/budgets.js';
+import { pName, pPos } from '../utils/playerName.js';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
 
 function fmt(v) {
   if (v >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}M`;
   return `£${(v / 1_000).toFixed(0)}K`;
+}
+
+// Chance a player accepts your approach — elite players are harder to land
+function signChance(overall) {
+  // 65 OVR → 95%, 75 → 84%, 82 → 73%, 88 → 63%, 92 → 56%, 95 → 52%
+  return Math.min(95, Math.max(35, Math.round(108 - (overall - 60) * 1.6)));
+}
+
+function chanceColor(pct) {
+  if (pct >= 75) return '#22c55e';
+  if (pct >= 55) return '#f59e0b';
+  if (pct >= 40) return '#f97316';
+  return '#ef4444';
+}
+
+// Strip diacritics so "arda guler" matches "Arda Güler", "mbappe" matches "Mbappé"
+function normalize(str) {
+  return (str || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 function BudgetBar({ budget, initial }) {
@@ -30,66 +49,85 @@ export default function TransferRoom({
   const [searchResults, setSearchResults] = useState([]);
   const [toast, setToast] = useState(null);
   const [confirmSim, setConfirmSim] = useState(false);
+  const [pendingSignId, setPendingSignId] = useState(null);
   const searchTimer = useRef(null);
   const searchCache = useRef(new Map());
   const initialBudget = useRef(budget);
   const color = CLUB_COLORS[club] ?? '#10b981';
 
+  const rejectedIds = new Set((transfers.rejected || []).map(p => p.id));
+  const squadIds    = new Set(squad.map(p => p.id));
+
   const showToast = useCallback((msg, type = 'error') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2800);
   }, []);
 
-  // Clear cache whenever squad changes so stale results can't be re-signed
+  // Clear cache whenever squad or rejected list changes
   useEffect(() => {
     searchCache.current.clear();
-  }, [squad]);
+  }, [squad, transfers.rejected]);
 
-  // Debounced search
+  // Debounced search — excludes squad members and rejected players
   useEffect(() => {
     clearTimeout(searchTimer.current);
     if (!searchQuery.trim()) { setSearchResults([]); return; }
 
     searchTimer.current = setTimeout(() => {
-      const q = searchQuery.toLowerCase();
+      const q = normalize(searchQuery);
       if (searchCache.current.has(q)) {
         setSearchResults(searchCache.current.get(q));
         return;
       }
 
-      const squadIds = new Set(squad.map(p => p.id));
       const results = allPlayers
-        .filter(p => p.name.toLowerCase().includes(q) && !squadIds.has(p.id))
+        .filter(p => {
+          if (squadIds.has(p.id) || rejectedIds.has(p.id)) return false;
+          return normalize(p.name).includes(q) || normalize(p.longName).includes(q);
+        })
         .sort((a, b) => b.overall - a.overall)
-        .slice(0, 8);
+        .slice(0, 10);
 
       searchCache.current.set(q, results);
       setSearchResults(results);
     }, 280);
 
     return () => clearTimeout(searchTimer.current);
-  }, [searchQuery, squad, allPlayers]);
+  }, [searchQuery, squad, allPlayers, transfers.rejected]);
 
   function handleSell(player) {
     setSquad(prev => prev.filter(p => p.id !== player.id));
     setBudget(b => b + player.value);
     setTransfers(t => ({ ...t, sold: [...t.sold, player] }));
     setSellTarget(null);
-    showToast(`${player.name} sold for ${fmt(player.value)}`, 'success');
+    showToast(`${pName(player)} sold for ${fmt(player.value)}`, 'success');
   }
 
-  function handleBuy(player) {
-    if (squad.some(p => p.id === player.id)) return; // guard: prevent double-signing
+  function handleSign(player) {
+    if (squadIds.has(player.id) || rejectedIds.has(player.id) || pendingSignId) return;
     if (player.value > budget) {
       showToast(`Insufficient funds — need ${fmt(player.value - budget)} more`, 'error');
       return;
     }
-    setSquad(prev => [...prev, player]);
-    setBudget(b => b - player.value);
-    setTransfers(t => ({ ...t, bought: [...t.bought, player] }));
-    setSearchQuery('');
-    setSearchResults([]);
-    showToast(`${player.name} signed!`, 'success');
+    setPendingSignId(player.id);
+
+    setTimeout(() => {
+      const chance = signChance(player.overall);
+      const accepted = Math.random() * 100 < chance;
+      setPendingSignId(null);
+
+      if (accepted) {
+        setSquad(prev => [...prev, player]);
+        setBudget(b => b - player.value);
+        setTransfers(t => ({ ...t, bought: [...t.bought, player] }));
+        setSearchQuery('');
+        setSearchResults([]);
+        showToast(`${pName(player)} signed!`, 'success');
+      } else {
+        setTransfers(t => ({ ...t, rejected: [...(t.rejected || []), player] }));
+        showToast(`${pName(player)} rejected your approach`, 'error');
+      }
+    }, 1500);
   }
 
   function handleSimulate() {
@@ -167,8 +205,8 @@ export default function TransferRoom({
                           {player.overall}
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-white">{player.name}</div>
-                          <div className="text-xs text-gray-500">Age {player.age} · {fmt(player.value)}</div>
+                          <div className="text-sm font-semibold text-white">{pName(player)}</div>
+                          <div className="text-xs text-gray-500">{pPos(player)} · Age {player.age} · {fmt(player.value)}</div>
                         </div>
                       </div>
                       <button
@@ -208,8 +246,12 @@ export default function TransferRoom({
 
             {searchResults.length > 0 && (
               <div className="mt-2 space-y-1 max-h-80 overflow-y-auto">
-                {searchResults.filter(p => !squad.some(s => s.id === p.id)).map(player => {
+                {searchResults.map(player => {
                   const canAfford = player.value <= budget;
+                  const isPending = pendingSignId === player.id;
+                  const isDisabled = !canAfford || !!pendingSignId;
+                  const chance = signChance(player.overall);
+                  const cc = chanceColor(chance);
                   return (
                     <div
                       key={player.id}
@@ -223,21 +265,29 @@ export default function TransferRoom({
                           {player.overall}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-xs font-semibold text-white truncate">{player.name}</div>
-                          <div className="text-[10px] text-gray-500">{player.position} · {player.club} · {fmt(player.value)}</div>
+                          <div className="text-xs font-semibold text-white truncate">{pName(player)}</div>
+                          <div className="text-[10px] text-gray-500 flex items-center gap-1.5">
+                            <span>{pPos(player)}</span>
+                            <span>·</span>
+                            <span>{player.club}</span>
+                            <span>·</span>
+                            <span>{fmt(player.value)}</span>
+                            <span>·</span>
+                            <span style={{ color: cc }} className="font-semibold">{chance}% chance</span>
+                          </div>
                         </div>
                       </div>
                       <button
-                        onClick={() => handleBuy(player)}
-                        disabled={!canAfford}
-                        className="flex-shrink-0 ml-2 px-2.5 py-1 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                        onClick={() => handleSign(player)}
+                        disabled={isDisabled}
+                        className="flex-shrink-0 ml-2 px-2.5 py-1 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 min-w-[56px] text-center"
                         style={{
                           backgroundColor: canAfford ? `${color}25` : '#374151',
                           color: canAfford ? color : '#6b7280',
                           border: `1px solid ${canAfford ? color + '50' : '#4b5563'}`,
                         }}
                       >
-                        Sign
+                        {isPending ? '…' : 'Sign'}
                       </button>
                     </div>
                   );
@@ -249,28 +299,60 @@ export default function TransferRoom({
             )}
           </div>
 
-          {/* Transfer summary */}
-          {(transfers.bought.length > 0 || transfers.sold.length > 0) && (
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-white mb-3">Transfer Activity</h3>
-              {transfers.bought.length > 0 && (
-                <div className="mb-3">
-                  <div className="text-xs text-emerald-400 font-semibold mb-1">IN</div>
-                  {transfers.bought.map(p => (
-                    <div key={p.id} className="text-xs text-gray-300 py-0.5">+ {p.name} ({fmt(p.value)})</div>
-                  ))}
-                </div>
-              )}
-              {transfers.sold.length > 0 && (
-                <div>
-                  <div className="text-xs text-red-400 font-semibold mb-1">OUT</div>
-                  {transfers.sold.map(p => (
-                    <div key={p.id} className="text-xs text-gray-300 py-0.5">− {p.name} ({fmt(p.value)})</div>
-                  ))}
-                </div>
-              )}
+          {/* Transfer activity — always visible */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-4 py-2.5 bg-gray-800/40 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white">Transfer Activity</h3>
+              <span className="text-xs text-gray-500">
+                {transfers.bought.length} in · {transfers.sold.length} out · {(transfers.rejected || []).length} rejected
+              </span>
             </div>
-          )}
+            {/* IN / OUT */}
+            <div className="grid grid-cols-2 divide-x divide-gray-800 border-b border-gray-800">
+              <div className="p-3 min-h-[100px]">
+                <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">IN</div>
+                {transfers.bought.length === 0
+                  ? <p className="text-xs text-gray-600 italic">No signings yet</p>
+                  : transfers.bought.map(p => (
+                    <div key={p.id} className="text-xs text-gray-300 py-0.5 leading-snug">
+                      <span className="text-emerald-500 mr-1">+</span>{pName(p)}
+                      <span className="text-gray-600 ml-1 text-[10px]">{pPos(p)}</span>
+                    </div>
+                  ))
+                }
+              </div>
+              <div className="p-3 min-h-[100px]">
+                <div className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-2">OUT</div>
+                {transfers.sold.length === 0
+                  ? <p className="text-xs text-gray-600 italic">No sales yet</p>
+                  : transfers.sold.map(p => (
+                    <div key={p.id} className="text-xs text-gray-300 py-0.5 leading-snug">
+                      <span className="text-red-500 mr-1">−</span>{pName(p)}
+                      <span className="text-gray-600 ml-1 text-[10px]">{pPos(p)}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+            {/* REJECTED */}
+            <div className="p-3">
+              <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Rejected Approaches</div>
+              {(transfers.rejected || []).length === 0
+                ? <p className="text-xs text-gray-600 italic">No rejections yet</p>
+                : <div className="flex flex-wrap gap-1.5">
+                    {(transfers.rejected || []).map(p => (
+                      <span key={p.id}
+                        className="text-[10px] px-2 py-0.5 rounded border font-semibold"
+                        style={{ borderColor: '#374151', color: '#6b7280', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        title={`${pName(p)} · OVR ${p.overall} · ${pPos(p)}`}
+                      >
+                        {pName(p)}
+                      </span>
+                    ))}
+                  </div>
+              }
+            </div>
+          </div>
         </div>
       </div>
 
@@ -278,7 +360,7 @@ export default function TransferRoom({
       {sellTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <div className="bg-[#1a1f2e] border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-lg font-black text-white mb-1">Sell {sellTarget.name}?</h3>
+            <h3 className="text-lg font-black text-white mb-1">Sell {pName(sellTarget)}?</h3>
             <p className="text-gray-400 text-sm mb-4">
               You'll receive <span className="text-emerald-400 font-bold">{fmt(sellTarget.value)}</span> and lose this player permanently.
             </p>

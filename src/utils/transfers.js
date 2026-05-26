@@ -1,18 +1,20 @@
 import { MOCK_PLAYERS, FREEAGENT_POOL } from '../data/mockPlayers.js';
 
 const PL_CLUBS = new Set([
-  'Arsenal', 'Chelsea', 'Liverpool', 'Manchester City', 'Manchester United',
-  'Tottenham Hotspur', 'Newcastle United', 'Aston Villa', 'West Ham United',
-  'Brighton', 'Fulham', 'Wolves', 'Everton', 'Crystal Palace', 'Brentford',
-  'Nottingham Forest', 'Bournemouth', 'Leicester City', 'Ipswich Town', 'Southampton',
+  'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton',
+  'Chelsea', 'Coventry City', 'Crystal Palace', 'Everton', 'Fulham',
+  'Hull City', 'Ipswich Town', 'Leeds United', 'Liverpool',
+  'Manchester City', 'Manchester United', 'Newcastle United',
+  'Nottingham Forest', 'Sunderland', 'Tottenham Hotspur',
 ]);
 
-// Build initial squad map from all mock players
+// Build initial squad map — uses isPL flag if present (real data), else falls back to PL_CLUBS set
 export function buildInitialSquads(allPlayers) {
   const squads = new Map();
   PL_CLUBS.forEach(club => squads.set(club, []));
   allPlayers.forEach(p => {
-    if (squads.has(p.club)) squads.get(p.club).push({ ...p });
+    const inPL = p.isPL !== undefined ? p.isPL : PL_CLUBS.has(p.club);
+    if (inPL && squads.has(p.club)) squads.get(p.club).push({ ...p });
   });
   return squads;
 }
@@ -39,12 +41,14 @@ export function resolveTransferChain(allPlayers, userSquad, userClub, boughtPlay
   // Add user's bought players to user's incomings
   boughtPlayers.forEach(p => incomings.get(userClub).push(p));
 
-  // Pool of available replacement players (non-PL + free agents)
-  const usedIds = new Set(allPlayers.map(p => p.id));
+  // Pool of available replacement players — non-PL players from the full dataset
   const replacementPool = [
     ...FREEAGENT_POOL,
-    ...allPlayers.filter(p => !PL_CLUBS.has(p.club)),
-  ].filter(p => !usedIds.has(p.id) || !PL_CLUBS.has(p.club));
+    ...allPlayers.filter(p => {
+      const inPL = p.isPL !== undefined ? p.isPL : PL_CLUBS.has(p.club);
+      return !inPL;
+    }),
+  ];
 
   // For each PL club that lost a player, find a replacement
   // Chain: if replacement is from a PL club, that club also needs a replacement

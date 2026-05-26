@@ -3,6 +3,7 @@ import { resolveTransferChain } from '../utils/transfers.js';
 import { simulateSeason, runProjectedOutlook } from '../utils/simulation.js';
 import { CLUB_COLORS } from '../data/budgets.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
+import { pName, pPos } from '../utils/playerName.js';
 
 const TABS = ['Overview', 'Season Stats', 'My Matches'];
 
@@ -184,7 +185,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black"
                       style={{ backgroundColor: `${color}25`, color }}>{myTopScorer.goals}</div>
                     <div>
-                      <div className="font-bold text-white">{myTopScorer.player.name}</div>
+                      <div className="font-bold text-white">{pName(myTopScorer.player)}</div>
                       <div className="text-xs text-gray-400">{myTopScorer.goals} goals · {myTopScorer.assists} assists</div>
                     </div>
                   </div>
@@ -199,7 +200,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black"
                       style={{ backgroundColor: `${color}25`, color }}>{myTopAssister.assists}</div>
                     <div>
-                      <div className="font-bold text-white">{myTopAssister.player.name}</div>
+                      <div className="font-bold text-white">{pName(myTopAssister.player)}</div>
                       <div className="text-xs text-gray-400">{myTopAssister.assists} assists · {myTopAssister.goals} goals</div>
                     </div>
                   </div>
@@ -215,7 +216,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                       {leagueTopScorer.goals}
                     </div>
                     <div>
-                      <div className="font-bold text-white">{leagueTopScorer.player.name}</div>
+                      <div className="font-bold text-white">{pName(leagueTopScorer.player)}</div>
                       <div className="text-xs text-gray-400">{leagueTopScorer.club} · {leagueTopScorer.goals} goals</div>
                     </div>
                   </div>
@@ -223,18 +224,42 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
               </div>
 
               {/* Transfers summary */}
-              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4">
-                <div className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3">Transfer Window</div>
-                {transfers.bought.length === 0 && transfers.sold.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No transfers made</p>
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
+                <div className="text-xs font-black text-gray-500 uppercase tracking-widest px-4 pt-4 pb-2">Transfer Window</div>
+                {transfers.bought.length === 0 && transfers.sold.length === 0 && (transfers.rejected || []).length === 0 ? (
+                  <p className="text-gray-500 text-sm px-4 pb-4">No transfer activity</p>
                 ) : (
-                  <div className="space-y-1">
-                    {transfers.bought.map(p => (
-                      <div key={p.id} className="text-xs text-emerald-400">+ {p.name} <span className="text-gray-500">({fmt(p.value)})</span></div>
-                    ))}
-                    {transfers.sold.map(p => (
-                      <div key={p.id} className="text-xs text-red-400">− {p.name} <span className="text-gray-500">({fmt(p.value)})</span></div>
-                    ))}
+                  <div className="divide-y divide-gray-800">
+                    {transfers.bought.length > 0 && (
+                      <div className="px-4 py-3">
+                        <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1.5">In</div>
+                        {transfers.bought.map(p => (
+                          <div key={p.id} className="text-xs text-gray-300 py-0.5">
+                            <span className="text-emerald-500 mr-1">+</span>{pName(p)} <span className="text-gray-600">{pPos(p)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {transfers.sold.length > 0 && (
+                      <div className="px-4 py-3">
+                        <div className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1.5">Out</div>
+                        {transfers.sold.map(p => (
+                          <div key={p.id} className="text-xs text-gray-300 py-0.5">
+                            <span className="text-red-500 mr-1">−</span>{pName(p)} <span className="text-gray-600">{pPos(p)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(transfers.rejected || []).length > 0 && (
+                      <div className="px-4 py-3">
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Rejected Your Approach</div>
+                        {(transfers.rejected || []).map(p => (
+                          <div key={p.id} className="text-xs text-gray-600 py-0.5">
+                            <span className="mr-1">✗</span>{pName(p)} <span className="text-gray-700">{pPos(p)} · OVR {p.overall}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -311,7 +336,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                         className="grid items-center px-3 py-2 border-t border-gray-800/40 text-xs"
                         style={{ gridTemplateColumns: '20px 1fr 80px 40px 40px', backgroundColor: isUser ? `${color}12` : undefined }}>
                         <span className="text-gray-500 font-bold">{i + 1}</span>
-                        <span className="font-semibold truncate" style={{ color: isUser ? color : '#e5e7eb' }}>{s.player.name}</span>
+                        <span className="font-semibold truncate" style={{ color: isUser ? color : '#e5e7eb' }}>{pName(s.player)}</span>
                         <span className="text-gray-500 truncate text-[10px]">{s.club}</span>
                         <span className="text-center font-black text-white">{s.goals}</span>
                         <span className="text-center text-gray-400">{s.assists}</span>
@@ -337,7 +362,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                         className="grid items-center px-3 py-2 border-t border-gray-800/40 text-xs"
                         style={{ gridTemplateColumns: '20px 1fr 80px 40px 40px', backgroundColor: isUser ? `${color}12` : undefined }}>
                         <span className="text-gray-500 font-bold">{i + 1}</span>
-                        <span className="font-semibold truncate" style={{ color: isUser ? color : '#e5e7eb' }}>{s.player.name}</span>
+                        <span className="font-semibold truncate" style={{ color: isUser ? color : '#e5e7eb' }}>{pName(s.player)}</span>
                         <span className="text-gray-500 truncate text-[10px]">{s.club}</span>
                         <span className="text-center font-black text-white">{s.assists}</span>
                         <span className="text-center text-gray-400">{s.goals}</span>
@@ -366,7 +391,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                       style={{ gridTemplateColumns: '28px 1fr 40px 36px 36px 36px 44px' }}>
                       <span className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black"
                         style={{ backgroundColor: `${color}20`, color }}>{player.overall}</span>
-                      <span className="font-semibold text-white truncate">{player.name}</span>
+                      <span className="font-semibold text-white truncate">{pName(player)}</span>
                       <span className="text-gray-500 text-[10px]">{player.position}</span>
                       <span className="text-center font-bold text-white">{goals || '—'}</span>
                       <span className="text-center text-gray-400">{assists || '—'}</span>
@@ -399,8 +424,8 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
               const resultColor = won ? '#10b981' : drew ? '#f59e0b' : '#ef4444';
               const resultLabel = won ? 'W' : drew ? 'D' : 'L';
 
-              const myScorers   = fixture.events.filter(e => e.scorer).map(e => `${e.scorer.name.split(' ').pop()} ${e.minute}'`);
-              const oppScorers  = fixture.oppEvents.filter(e => e.scorer).map(e => `${e.scorer.name.split(' ').pop()} ${e.minute}'`);
+              const myScorers   = fixture.events.filter(e => e.scorer).map(e => `${pName(e.scorer).split(' ').pop()} ${e.minute}'`);
+              const oppScorers  = fixture.oppEvents.filter(e => e.scorer).map(e => `${pName(e.scorer).split(' ').pop()} ${e.minute}'`);
 
               return (
                 <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3"

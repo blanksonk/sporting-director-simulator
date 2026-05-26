@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FORMATIONS } from '../data/formations.js';
 import { CLUB_COLORS } from '../data/budgets.js';
+import { pName, pPos } from '../utils/playerName.js';
 
 const ROLE_KEYS = ['captain', 'vc1', 'vc2', 'fkTaker', 'cornerTaker', 'penaltyTaker'];
 const ROLE_LABELS = {
@@ -134,7 +135,7 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
               </span>
               <span className="text-gray-600">·</span>
               <span className={captainSet ? 'text-yellow-400 font-bold' : 'text-gray-500'}>
-                {captainSet ? `C: ${squad.find(p => p.id === roles.captain)?.name.split(' ').pop()}` : 'No captain'}
+                {captainSet ? `C: ${pName(squad.find(p => p.id === roles.captain) || {}).split(' ').pop()}` : 'No captain'}
               </span>
             </div>
             <button onClick={onBack}
@@ -203,7 +204,7 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                   onContextMenu={e => { e.preventDefault(); if (player) handleClearSlot(slot.id); }}
                   className="absolute flex flex-col items-center"
                   style={{ left: `${slot.x}%`, top: `${slot.y}%`, transform: 'translate(-50%,-50%)', zIndex: 1 }}
-                  title={player ? `${player.name} — click to remove` : `Click to assign ${slot.role}`}
+                  title={player ? `${pName(player)} — click to remove` : `Click to assign ${slot.role}`}
                 >
                   {/* Circle */}
                   <div className="w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-black transition-all relative"
@@ -234,7 +235,7 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                   {/* Name label */}
                   <div className="mt-0.5 text-[9px] font-bold leading-tight max-w-[52px] text-center truncate"
                     style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)', color: player ? '#fff' : 'rgba(255,255,255,0.7)' }}>
-                    {player ? player.name.split(' ').pop() : slot.id.toUpperCase()}
+                    {player ? (pName(player)).split(' ').pop() : slot.id.toUpperCase()}
                   </div>
                 </button>
               );
@@ -292,9 +293,9 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                               {p.overall}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold text-white truncate">{p.name}</div>
+                              <div className="text-sm font-semibold text-white truncate">{pName(p)}</div>
                               <div className="text-[10px] text-gray-500">
-                                {p.position} · Age {p.age}{alreadyElsewhere ? ' · already placed' : ''}
+                                {pPos(p)} · Age {p.age}{alreadyElsewhere ? ' · already placed' : ''}
                               </div>
                             </div>
                           </button>
@@ -341,7 +342,7 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                                 {p.overall}
                               </span>
                               <span className={`text-xs flex-1 truncate ${inLineup ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                                {p.name}
+                                {pName(p)}
                               </span>
                               <div className="flex gap-1">
                                 {badge === 'C' && <span className="text-[9px] font-black px-1 py-0.5 rounded bg-yellow-400 text-black">C</span>}
@@ -397,7 +398,7 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                         <option value="">— Not assigned —</option>
                         {options.map(p => (
                           <option key={p.id} value={p.id}>
-                            {p.name} ({p.position} · {p.overall})
+                            {pName(p)} ({pPos(p)} · {p.overall})
                           </option>
                         ))}
                       </select>

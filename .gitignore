@@ -5,3 +5,4 @@ dist/
 .netlify/
 *.log
 .DS_Store
+FIFA_Ratings.csv
