@@ -23,10 +23,13 @@ function ClubLogo({ club, size = 6 }) {
   const [failed, setFailed] = useState(false);
   const logo = CLUB_LOGOS[club];
   const emoji = CLUB_EMOJI[club] ?? '⚽';
+  const px = { 4: 'w-4 h-4', 5: 'w-5 h-5', 6: 'w-6 h-6', 7: 'w-7 h-7', 8: 'w-8 h-8', 10: 'w-10 h-10' }[size] ?? `w-${size} h-${size}`;
   if (!logo || failed) return <span className="text-base leading-none">{emoji}</span>;
   return (
-    <img src={logo} alt={club} className={`w-${size} h-${size} object-contain`}
-      onError={() => setFailed(true)} />
+    <div className={`${px} bg-white rounded p-0.5 flex items-center justify-center shrink-0`}>
+      <img src={logo} alt={club} className="w-full h-full object-contain"
+        onError={() => setFailed(true)} />
+    </div>
   );
 }
 

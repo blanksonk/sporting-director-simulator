@@ -232,10 +232,18 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                       </span>
                     )}
                   </div>
-                  {/* Name label */}
-                  <div className="mt-0.5 text-[9px] font-bold leading-tight max-w-[52px] text-center truncate"
-                    style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)', color: player ? '#fff' : 'rgba(255,255,255,0.7)' }}>
-                    {player ? (pName(player)).split(' ').pop() : slot.id.toUpperCase()}
+                  {/* Name + position label */}
+                  <div className="mt-0.5 flex flex-col items-center gap-0 max-w-[56px]">
+                    <div className="text-[9px] font-bold leading-tight text-center truncate w-full"
+                      style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)', color: player ? '#fff' : 'rgba(255,255,255,0.7)' }}>
+                      {player ? (pName(player)).split(' ').pop() : slot.id.toUpperCase()}
+                    </div>
+                    {player && (
+                      <div className="text-[8px] font-semibold leading-tight text-center truncate w-full"
+                        style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9)', color: POS_COLORS[player.position] ?? '#9ca3af' }}>
+                        {pPos(player)}
+                      </div>
+                    )}
                   </div>
                 </button>
               );
@@ -341,9 +349,14 @@ export default function TacticsRoom({ club, squad, formation: initFormation, onC
                                 style={{ backgroundColor: inLineup ? `${posColor}30` : 'rgba(255,255,255,0.06)', color: inLineup ? posColor : '#6b7280' }}>
                                 {p.overall}
                               </span>
-                              <span className={`text-xs flex-1 truncate ${inLineup ? 'text-white font-semibold' : 'text-gray-400'}`}>
-                                {pName(p)}
-                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className={`text-xs truncate ${inLineup ? 'text-white font-semibold' : 'text-gray-400'}`}>
+                                  {pName(p)}
+                                </div>
+                                <div className="text-[9px] truncate" style={{ color: POS_COLORS[p.position] ?? '#6b7280' }}>
+                                  {pPos(p)}
+                                </div>
+                              </div>
                               <div className="flex gap-1">
                                 {badge === 'C' && <span className="text-[9px] font-black px-1 py-0.5 rounded bg-yellow-400 text-black">C</span>}
                                 {badge === 'V' && <span className="text-[9px] font-black px-1 py-0.5 rounded bg-blue-400 text-black">V</span>}

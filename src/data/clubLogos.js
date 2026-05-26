@@ -11,7 +11,6 @@ export const CLUB_LOGOS = {
   'Crystal Palace':      `${BASE}/354.svg`,
   'Everton':             `${BASE}/62.svg`,
   'Fulham':              `${BASE}/63.svg`,
-  'Coventry City':       `${BASE}/383.svg`,
   'Hull City':           `${BASE}/355.svg`,
   'Ipswich Town':        `${BASE}/349.svg`,
   'Leeds United':        `${BASE}/341.svg`,
@@ -22,10 +21,6 @@ export const CLUB_LOGOS = {
   'Nottingham Forest':   `${BASE}/351.svg`,
   'Sunderland':          `${BASE}/394.svg`,
   'Tottenham Hotspur':   `${BASE}/73.svg`,
-  'West Ham United':     `${BASE}/563.svg`,
-  'Wolves':              `${BASE}/76.svg`,
-  'West Ham United':     `${BASE}/563.svg`,
-  'Wolves':              `${BASE}/76.svg`,
 };
 
 // Emoji fallbacks in case logo fails to load
@@ -36,10 +31,10 @@ export const CLUB_EMOJI = {
   'Brentford':           '🐝',
   'Brighton':            '🔵',
   'Chelsea':             '💙',
+  'Coventry City':       '🩵',
   'Crystal Palace':      '🦅',
   'Everton':             '🔵',
   'Fulham':              '⚫',
-  'Coventry City':       '🩵',
   'Hull City':           '🟠',
   'Ipswich Town':        '🔵',
   'Leeds United':        '⚪',
@@ -50,8 +45,6 @@ export const CLUB_EMOJI = {
   'Nottingham Forest':   '🌲',
   'Sunderland':          '🔴',
   'Tottenham Hotspur':   '⚪',
-  'West Ham United':     '🍷',
-  'Wolves':              '🐺',
 };
 
 export function getLogoUrl(clubName) {

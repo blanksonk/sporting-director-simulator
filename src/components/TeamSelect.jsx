@@ -87,12 +87,12 @@ export default function TeamSelect({ onSelectClub }) {
                 }}
               >
                 {/* Crest logo with emoji fallback */}
-                <div className="w-12 h-12 mb-2 flex items-center justify-center">
+                <div className="w-12 h-12 mb-2 flex items-center justify-center bg-white rounded-lg p-1">
                   {logoUrl
                     ? <img src={logoUrl} alt={name} className="w-full h-full object-contain"
                         onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
                     : null}
-                  <span className="text-3xl leading-none" style={{ display: logoUrl ? 'none' : 'block' }}>{emoji}</span>
+                  <span className="text-2xl leading-none" style={{ display: logoUrl ? 'none' : 'block' }}>{emoji}</span>
                 </div>
 
                 {/* Club name */}
