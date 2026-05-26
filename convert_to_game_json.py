@@ -44,9 +44,10 @@ CLUB_MAP = {
 
 GK_CODES  = {'GK'}
 DEF_CODES = {'CB', 'LB', 'RB', 'LWB', 'RWB', 'SW', 'RCB', 'LCB', 'WB'}
-MID_CODES = {'CM', 'CDM', 'CAM', 'LM', 'RM', 'DM', 'LCM', 'RCM',
+MID_CODES = {'CM', 'CDM', 'CAM', 'DM', 'LCM', 'RCM',
              'LDM', 'RDM', 'LAM', 'RAM', 'AM'}
-FWD_CODES = {'ST', 'CF', 'LW', 'RW', 'LF', 'RF', 'SS', 'LS', 'RS'}
+# RM/LM are wide attacking midfielders — treat as FWD for squad balance
+FWD_CODES = {'ST', 'CF', 'LW', 'RW', 'LM', 'RM', 'LF', 'RF', 'SS', 'LS', 'RS'}
 
 def map_position(club_pos: str, all_positions: str) -> str:
     code = (club_pos or '').strip().upper()
@@ -126,6 +127,13 @@ def convert(csv_path: str):
         raw_positions = [p.strip().upper() for p in row.get('player_positions', '').split(',') if p.strip()]
         raw_positions = raw_positions[:3]  # cap at 3
 
+        def stat(key, default=50):
+            try:
+                v = row.get(key, '').strip()
+                return int(float(v)) if v else default
+            except (ValueError, TypeError):
+                return default
+
         players.append({
             'id':        player_id,
             'name':      short_name,
@@ -137,6 +145,15 @@ def convert(csv_path: str):
             'age':       age,
             'overall':   overall,
             'value':     value,
+            # Attribute block — used in simulation model
+            'pac': stat('pace'),
+            'sho': stat('shooting'),
+            'pas': stat('passing'),
+            'dri': stat('dribbling'),
+            'def': stat('defending'),
+            'phy': stat('physic'),
+            'fin': stat('attacking_finishing'),  # finishing quality
+            'sta': stat('power_stamina'),        # fatigue resistance
         })
 
     players.sort(key=lambda p: (-p['overall'], p['club'], p['name']))

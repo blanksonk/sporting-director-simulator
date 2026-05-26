@@ -38,17 +38,24 @@ function applyFatigue(squad, fatigueMap) {
 }
 
 // ── Update fatigue after a match ─────────────────────────────────────────────
-// Top 11 by current effective rating are assumed to have played (+1 fatigue).
-// Others rested (−0.5, floor 0).
+// Top 11 by current effective rating are assumed to have played.
+// Fatigue increment scales inversely with stamina (sta): fit players recover better.
 function updateFatigue(squad, fatigueMap) {
   const withEff = squad.map(p => ({
     id: p.id,
+    sta: p.sta,
     eff: effectiveOverall(p, fatigueMap.get(p.id) ?? 0),
   })).sort((a, b) => b.eff - a.eff);
 
-  withEff.forEach(({ id }, i) => {
+  withEff.forEach(({ id, sta }, i) => {
     const cur = fatigueMap.get(id) ?? 0;
-    fatigueMap.set(id, i < 11 ? cur + 1 : Math.max(0, cur - 0.5));
+    if (i < 11) {
+      // High stamina (≥80) → +0.75 fatigue; average (60-79) → +1.0; low (<60) → +1.25
+      const delta = sta == null ? 1.0 : sta >= 80 ? 0.75 : sta >= 60 ? 1.0 : 1.25;
+      fatigueMap.set(id, cur + delta);
+    } else {
+      fatigueMap.set(id, Math.max(0, cur - 0.5));
+    }
   });
 }
 
@@ -73,17 +80,29 @@ function weightedPick(items) {
 }
 
 // ── Pick scorer + assister for one goal ──────────────────────────────────────
-// Scorer weight: overall^2.5 so star FWDs dominate (Haaland 92 vs avg 79 = 46% more likely)
-// Assister: creative MIDs/FWDs, never the scorer, 78% of goals have an assist
+// Scorer weight uses finishing (fin) for FWDs, shooting (sho) for MIDs.
+// Assister weight uses passing + dribbling for creative players.
 function pickGoalEvent(squad, roles) {
-  const scorerPool = [
-    ...squad.filter(p => p.position === 'FWD').map(p => ({ ...p, w: (p.overall / 75) ** 1.5 })),
-    ...squad.filter(p => p.position === 'MID').map(p => ({ ...p, w: (p.overall / 75) ** 1.2 * 0.28 })),
-    ...squad.filter(p => p.position === 'DEF').map(p => ({ ...p, w: (p.overall / 75) * 0.05 })),
-  ];
+  const scorerWeight = (p) => {
+    if (p.position === 'FWD') {
+      const finScore = p.fin ?? p.overall;
+      const pacBonus = p.pac ? 1 + (p.pac - 75) * 0.003 : 1; // pace helps get on the end of chances
+      return (finScore / 75) ** 1.5 * Math.max(0.8, pacBonus);
+    }
+    if (p.position === 'MID') {
+      const shoScore = p.sho ?? p.overall;
+      return (shoScore / 75) ** 1.2 * 0.28;
+    }
+    if (p.position === 'DEF') return (p.overall / 75) * 0.05;
+    return 0;
+  };
+
+  const scorerPool = squad
+    .filter(p => p.position !== 'GK')
+    .map(p => ({ ...p, w: scorerWeight(p) }))
+    .filter(p => p.w > 0);
   if (!scorerPool.length) return { scorer: null, assister: null, minute: 1 };
 
-  // Role overrides: 10% chance penalty taker scores (for each goal), 5% FK direct
   let scorer = weightedPick(scorerPool);
   if (roles?.penaltyTaker && Math.random() < 0.10) {
     const pt = squad.find(p => p.id === roles.penaltyTaker);
@@ -93,19 +112,21 @@ function pickGoalEvent(squad, roles) {
     if (fk) scorer = fk;
   }
 
-  // Assister (78% of goals)
+  // Assister (78% of goals) — weighted by passing + dribbling
   let assister = null;
   if (Math.random() < 0.78) {
+    const creativeScore = (p) => {
+      const pasScore = p.pas ?? p.overall;
+      const driScore = p.dri ?? p.overall;
+      const base = pasScore * 0.60 + driScore * 0.40;
+      if (p.position === 'MID') return base ** 2 * 0.55;
+      if (p.position === 'FWD') return base ** 2 * 0.40;
+      if (p.position === 'DEF') return base * 0.08;
+      return base * 0.02;
+    };
     const assisterPool = squad
       .filter(p => p.id !== scorer.id)
-      .map(p => ({
-        ...p,
-        w: p.position === 'MID' ? p.overall ** 2 * 0.55 :
-           p.position === 'FWD' ? p.overall ** 2 * 0.40 :
-           p.position === 'DEF' ? p.overall * 0.08 :
-           p.overall * 0.02,
-      }));
-    // Corner assist bonus
+      .map(p => ({ ...p, w: creativeScore(p) }));
     if (roles?.cornerTaker && Math.random() < 0.12) {
       const ck = squad.find(p => p.id === roles.cornerTaker && p.id !== scorer.id);
       if (ck) assister = ck;
