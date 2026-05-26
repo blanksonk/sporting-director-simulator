@@ -23,7 +23,6 @@ function fmt(v) {
 }
 
 const ITEM_DELAY = 600; // ms between each transfer reveal
-const MIN_SCREEN_MS = 3000; // minimum time on screen regardless
 
 export default function TransferChainAnimation({
   allPlayers, userSquad, club: userClub, transfers, onComplete,
@@ -34,7 +33,6 @@ export default function TransferChainAnimation({
   const fullLogRef            = useRef([]);
   const onCompleteRef         = useRef(onComplete);
   const listRef               = useRef(null);
-  const startTimeRef          = useRef(Date.now());
 
   useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
@@ -58,8 +56,6 @@ export default function TransferChainAnimation({
       log.push({ type: 'in', club: t.club, player: t.playerIn, fromClub: t.fromClub, isUser: false, depth: t.depth });
     });
     fullLogRef.current = log;
-    startTimeRef.current = Date.now();
-
     // 800ms opening splash, then start revealing
     const openTimer = setTimeout(() => {
       setPhase('active');
@@ -88,13 +84,7 @@ export default function TransferChainAnimation({
   }, []);
 
   // When closed: respect minimum screen time, then advance
-  useEffect(() => {
-    if (phase !== 'closed') return;
-    const elapsed = Date.now() - startTimeRef.current;
-    const remaining = Math.max(0, MIN_SCREEN_MS - elapsed);
-    const t = setTimeout(() => onCompleteRef.current(resultRef.current), remaining);
-    return () => clearTimeout(t);
-  }, [phase]);
+  // No auto-advance on close — user must click "Set Tactics →"
 
   // Auto-scroll feed
   useEffect(() => {
