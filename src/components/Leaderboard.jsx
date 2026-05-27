@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
 import { calcDirectorScore } from '../utils/directorScore.js';
+import Comments from './Comments.jsx';
 
 function ClubLogo({ club }) {
   const [failed, setFailed] = useState(false);
@@ -42,7 +43,7 @@ function fmtBudget(v) {
   return `£${v}`;
 }
 
-export default function Leaderboard({ onBack }) {
+export default function Leaderboard({ onBack, username }) {
   const [sessions, setSessions] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -226,6 +227,12 @@ export default function Leaderboard({ onBack }) {
             })}
           </div>
         )}
+
+        {/* Comments */}
+        <div className="mt-10 pt-8 border-t border-gray-800">
+          <Comments username={username} />
+        </div>
+
       </div>
     </div>
   );

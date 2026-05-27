@@ -11,6 +11,7 @@ import SeasonAnimation from './components/SeasonAnimation.jsx';
 import TacticsRoom from './components/TacticsRoom.jsx';
 import SimulationResults from './components/SimulationResults.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
+import HowToPlay from './components/HowToPlay.jsx';
 
 function getSession() {
   try {
@@ -115,10 +116,21 @@ export default function App() {
     // username and anon_user_id intentionally kept across resets
   }
 
+  const [showAbout, setShowAbout] = useState(false);
   const showBadge = username && screen !== 'landing' && screen !== 'leaderboard';
 
   return (
     <div className="min-h-screen bg-[#0f1117] text-white">
+      {/* Global ? button — always visible except landing */}
+      {screen !== 'landing' && (
+        <button
+          onClick={() => setShowAbout(true)}
+          className="fixed top-3 left-4 z-50 w-7 h-7 flex items-center justify-center rounded-full bg-gray-800/80 backdrop-blur border border-gray-700 text-gray-400 hover:text-white text-xs font-black transition-colors"
+          title="About / How to Play"
+        >
+          ?
+        </button>
+      )}
       {showBadge && (
         <div className="fixed top-3 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/80 backdrop-blur border border-gray-700 text-xs font-semibold text-gray-300">
           <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-black">
@@ -127,6 +139,7 @@ export default function App() {
           {username}
         </div>
       )}
+      {showAbout && <HowToPlay onClose={() => setShowAbout(false)} />}
       {screen === 'landing' && (
         <LandingPage
           onStart={(name) => { setUsername(name); setScreen('teamSelect'); }}
@@ -134,7 +147,7 @@ export default function App() {
         />
       )}
       {screen === 'leaderboard' && (
-        <Leaderboard onBack={() => setScreen('landing')} />
+        <Leaderboard onBack={() => setScreen('landing')} username={username} />
       )}
       {screen === 'teamSelect' && (
         <TeamSelect onSelectClub={handleSelectClub} />
