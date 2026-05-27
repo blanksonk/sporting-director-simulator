@@ -128,21 +128,43 @@ export default function Leaderboard({ onBack }) {
         {!loading && !error && sessions.length > 0 && (
           <div className="space-y-2">
             {sessions.map((row, i) => {
+              const rank = i + 1;
+              const medal = rank === 1 ? { icon: '🥇', color: '#f59e0b' }
+                          : rank === 2 ? { icon: '🥈', color: '#9ca3af' }
+                          : rank === 3 ? { icon: '🥉', color: '#b45309' }
+                          : null;
               const zoneColor = ZONE_COLORS[row.outcome_zone] ?? '#6b7280';
               const budgetDiff = row.budget_remaining != null && row.starting_budget != null
                 ? row.budget_remaining - row.starting_budget : null;
 
               return (
-                <div key={i} className="bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3"
-                  style={{ borderLeftWidth: 3, borderLeftColor: zoneColor }}>
+                <div key={i}>
+                  {/* Separator after top 10 */}
+                  {rank === 11 && (
+                    <div className="flex items-center gap-3 py-2 mb-1">
+                      <div className="flex-1 h-px bg-gray-800" />
+                      <span className="text-[10px] text-gray-600 font-semibold uppercase tracking-widest shrink-0">Outside Top 10</span>
+                      <div className="flex-1 h-px bg-gray-800" />
+                    </div>
+                  )}
+
+                <div className="bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 overflow-hidden"
+                  style={medal ? { borderColor: `${medal.color}40` } : {}}>
+                  {/* Zone colour strip — top edge like FM table */}
+                  <div className="h-0.5 -mx-4 -mt-3 mb-3" style={{ backgroundColor: zoneColor }} />
 
                   {/* Top row: rank, name, club, position, points, date */}
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-sm font-black w-6 text-gray-500 shrink-0">{i + 1}</span>
+                    {/* Rank / medal */}
+                    {medal
+                      ? <span className="text-xl shrink-0 w-7 text-center leading-none">{medal.icon}</span>
+                      : <span className="text-sm font-black w-7 text-center text-gray-600 shrink-0">{rank}</span>
+                    }
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-black text-white truncate">{row.username}</span>
+                        <span className="font-black truncate"
+                          style={{ color: medal ? medal.color : '#ffffff' }}>{row.username}</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
                           style={{ backgroundColor: `${zoneColor}20`, color: zoneColor }}>
                           {row.outcome_zone}
@@ -155,8 +177,10 @@ export default function Leaderboard({ onBack }) {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <div className="font-black text-white text-lg">{row.dirScore}<span className="text-xs text-gray-500 font-normal ml-0.5">/1000</span></div>
-                      <div className="text-xs font-bold" style={{ color: zoneColor }}>{ordinal(row.final_position)} · {row.points}pts</div>
+                      <div className="font-black text-lg" style={{ color: medal ? medal.color : '#ffffff' }}>
+                        {row.dirScore}<span className="text-xs text-gray-500 font-normal ml-0.5">/1000</span>
+                      </div>
+                      <div className="text-xs text-gray-500">{ordinal(row.final_position)} · {row.points}pts</div>
                     </div>
 
                     <div className="text-right shrink-0 hidden sm:block">
@@ -199,6 +223,7 @@ export default function Leaderboard({ onBack }) {
                       <span className="text-gray-600 ml-1">transfers</span>
                     </span>
                   </div>
+                </div>
                 </div>
               );
             })}
