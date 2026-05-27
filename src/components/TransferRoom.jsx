@@ -3,10 +3,43 @@ import { CLUB_COLORS } from '../data/budgets.js';
 import { pName, pPos } from '../utils/playerName.js';
 
 const POSITIONS = ['GK', 'DEF', 'MID', 'FWD'];
+const POS_ORDER  = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+
+const ATTRS = ['pac', 'sho', 'pas', 'dri', 'def', 'fin', 'sta'];
+const ATTR_LABEL = { pac: 'PAC', sho: 'SHO', pas: 'PAS', dri: 'DRI', def: 'DEF', fin: 'FIN', sta: 'STA' };
 
 function fmt(v) {
   if (v >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}M`;
   return `£${(v / 1_000).toFixed(0)}K`;
+}
+
+function statColor(v) {
+  if (v == null) return '#6b7280';
+  if (v >= 80) return '#10b981';
+  if (v >= 65) return '#f59e0b';
+  if (v >= 50) return '#f97316';
+  return '#ef4444';
+}
+
+function StatBars({ player }) {
+  return (
+    <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5 mt-2">
+      {ATTRS.map(a => {
+        const v = player[a];
+        const pct = v != null ? Math.min(100, v) : 0;
+        const c = statColor(v);
+        return (
+          <div key={a} className="flex flex-col items-center gap-0.5">
+            <span className="text-[9px] font-bold text-gray-500">{ATTR_LABEL[a]}</span>
+            <div className="w-full bg-gray-800 rounded-full h-1">
+              <div className="h-1 rounded-full" style={{ width: `${pct}%`, backgroundColor: c }} />
+            </div>
+            <span className="text-[9px] font-bold tabular-nums" style={{ color: c }}>{v ?? '—'}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // Chance a player accepts your approach — elite players are harder to land
@@ -47,6 +80,8 @@ export default function TransferRoom({
   const [sellTarget, setSellTarget] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [sortKey, setSortKey] = useState('pos');
+  const [sortDir, setSortDir] = useState(1);
   const [toast, setToast] = useState(null);
   const [confirmSim, setConfirmSim] = useState(false);
   const [pendingSignId, setPendingSignId] = useState(null);
@@ -167,6 +202,24 @@ export default function TransferRoom({
     return acc;
   }, {});
 
+  function handleSort(key) {
+    if (sortKey === key) setSortDir(d => d * -1);
+    else { setSortKey(key); setSortDir(-1); }
+  }
+
+  const sortedSquad = [...squad].sort((a, b) => {
+    if (sortKey === 'pos') {
+      const pd = (POS_ORDER[a.position] ?? 9) - (POS_ORDER[b.position] ?? 9);
+      if (pd !== 0) return pd;
+      return (b.overall - a.overall);
+    }
+    if (sortKey === 'name') return pName(a).localeCompare(pName(b)) * sortDir;
+    if (sortKey === 'age')  return (a.age - b.age) * sortDir;
+    if (sortKey === 'val')  return (a.value - b.value) * sortDir;
+    const av = a[sortKey] ?? 0, bv = b[sortKey] ?? 0;
+    return (bv - av) * sortDir;
+  });
+
   return (
     <div className="min-h-screen bg-[#0f1117] flex flex-col">
       {/* Top bar */}
@@ -221,51 +274,71 @@ export default function TransferRoom({
             </div>
           </div>
 
-          {POSITIONS.map(pos => (
-            <div key={pos} className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
-              <div className="px-4 py-2 bg-gray-800/50 flex items-center gap-2">
-                <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ backgroundColor: `${color}30`, color }}>
-                  {pos}
-                </span>
-                <span className="text-gray-500 text-xs">{byPosition[pos].length} players</span>
-              </div>
-              {byPosition[pos].length === 0 ? (
-                <div className="px-4 py-3 text-gray-600 text-sm italic">No {pos}s in squad</div>
-              ) : (
-                <div className="divide-y divide-gray-800/50">
-                  {byPosition[pos].map(player => (
-                    <div
-                      key={player.id}
-                      className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/30 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Overall badge */}
-                        <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black"
-                          style={{ backgroundColor: `${color}25`, color }}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-gray-800 bg-gray-800/40">
+                    {/* Sticky name col */}
+                    <th className="sticky left-0 z-10 bg-gray-800/80 text-left px-3 py-2 font-semibold text-gray-400 cursor-pointer hover:text-white whitespace-nowrap"
+                      onClick={() => handleSort('name')}>
+                      Name {sortKey === 'name' ? (sortDir === -1 ? '↓' : '↑') : ''}
+                    </th>
+                    {[
+                      { k: 'pos',     l: 'POS' },
+                      { k: 'overall', l: 'OVR' },
+                      { k: 'age',     l: 'Age' },
+                      ...ATTRS.map(a => ({ k: a, l: ATTR_LABEL[a] })),
+                      { k: 'val',     l: 'Value' },
+                    ].map(({ k, l }) => (
+                      <th key={k}
+                        className="px-2 py-2 font-semibold text-gray-400 cursor-pointer hover:text-white text-center whitespace-nowrap"
+                        onClick={() => handleSort(k)}>
+                        {l}{sortKey === k ? (sortDir === -1 ? ' ↓' : ' ↑') : ''}
+                      </th>
+                    ))}
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedSquad.map(player => (
+                    <tr key={player.id}
+                      className="border-b border-gray-800/40 hover:bg-gray-800/30 transition-colors group">
+                      <td className="sticky left-0 z-10 bg-[#0f1117] group-hover:bg-gray-800/30 px-3 py-2 font-semibold text-white whitespace-nowrap max-w-[130px] truncate">
+                        {pName(player)}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                          style={{ backgroundColor: `${color}25`, color }}>
+                          {player.position}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-center font-black" style={{ color }}>{player.overall}</td>
+                      <td className="px-2 py-2 text-center text-gray-400">{player.age}</td>
+                      {ATTRS.map(a => (
+                        <td key={a} className="px-2 py-2 text-center font-semibold tabular-nums"
+                          style={{ color: statColor(player[a]) }}>
+                          {player[a] ?? '—'}
+                        </td>
+                      ))}
+                      <td className="px-2 py-2 text-center text-gray-500 whitespace-nowrap">{fmt(player.value)}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => squad.length > MIN_TOTAL ? setSellTarget(player) : showToast(`Cannot drop below ${MIN_TOTAL} players`, 'error')}
+                          className="opacity-40 group-hover:opacity-100 px-2 py-1 text-[10px] font-semibold rounded border transition-all whitespace-nowrap"
+                          style={squad.length > MIN_TOTAL
+                            ? { borderColor: 'rgba(239,68,68,0.4)', color: '#f87171' }
+                            : { borderColor: 'rgba(107,114,128,0.3)', color: '#4b5563', cursor: 'not-allowed' }}
                         >
-                          {player.overall}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-white">{pName(player)}</div>
-                          <div className="text-xs text-gray-500">{pPos(player)} · Age {player.age} · {fmt(player.value)}</div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => squad.length > MIN_TOTAL ? setSellTarget(player) : showToast(`Cannot drop below ${MIN_TOTAL} players`, 'error')}
-                        className="sm:opacity-0 sm:group-hover:opacity-100 px-3 py-1 text-xs font-semibold rounded-lg border transition-all"
-                        style={squad.length > MIN_TOTAL
-                          ? { borderColor: 'rgba(239,68,68,0.4)', color: '#f87171' }
-                          : { borderColor: 'rgba(107,114,128,0.3)', color: '#4b5563', cursor: 'not-allowed' }}
-                      >
-                        Sell
-                      </button>
-                    </div>
+                          Sell
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              )}
+                </tbody>
+              </table>
             </div>
-          ))}
+          </div>
         </div>
 
         {/* Search + stats panel */}
@@ -300,40 +373,43 @@ export default function TransferRoom({
                   return (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between p-2.5 rounded-lg border border-gray-800 hover:border-gray-600 hover:bg-gray-800/50 transition-all"
+                      className="p-2.5 rounded-lg border border-gray-800 hover:border-gray-600 hover:bg-gray-800/50 transition-all"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div
-                          className="w-7 h-7 rounded flex-shrink-0 flex items-center justify-center text-xs font-black"
-                          style={{ backgroundColor: canAfford ? `${color}25` : '#374151', color: canAfford ? color : '#6b7280' }}
-                        >
-                          {player.overall}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-white truncate">{pName(player)}</div>
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1.5">
-                            <span>{pPos(player)}</span>
-                            <span>·</span>
-                            <span>{player.club}</span>
-                            <span>·</span>
-                            <span>{fmt(player.value)}</span>
-                            <span>·</span>
-                            <span style={{ color: cc }} className="font-semibold">{chance}% chance</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className="w-7 h-7 rounded flex-shrink-0 flex items-center justify-center text-xs font-black"
+                            style={{ backgroundColor: canAfford ? `${color}25` : '#374151', color: canAfford ? color : '#6b7280' }}
+                          >
+                            {player.overall}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-white truncate">{pName(player)}</div>
+                            <div className="text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+                              <span>{pPos(player)}</span>
+                              <span>·</span>
+                              <span>{player.club}</span>
+                              <span>·</span>
+                              <span>{fmt(player.value)}</span>
+                              <span>·</span>
+                              <span style={{ color: cc }} className="font-semibold">{chance}% chance</span>
+                            </div>
                           </div>
                         </div>
+                        <button
+                          onClick={() => handleSign(player)}
+                          disabled={isDisabled}
+                          className="flex-shrink-0 px-2.5 py-1 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 min-w-[48px] text-center"
+                          style={{
+                            backgroundColor: canAfford ? `${color}25` : '#374151',
+                            color: canAfford ? color : '#6b7280',
+                            border: `1px solid ${canAfford ? color + '50' : '#4b5563'}`,
+                          }}
+                        >
+                          {isPending ? '…' : 'Sign'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleSign(player)}
-                        disabled={isDisabled}
-                        className="flex-shrink-0 ml-2 px-2.5 py-1 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 min-w-[56px] text-center"
-                        style={{
-                          backgroundColor: canAfford ? `${color}25` : '#374151',
-                          color: canAfford ? color : '#6b7280',
-                          border: `1px solid ${canAfford ? color + '50' : '#4b5563'}`,
-                        }}
-                      >
-                        {isPending ? '…' : 'Sign'}
-                      </button>
+                      <StatBars player={player} />
                     </div>
                   );
                 })}
