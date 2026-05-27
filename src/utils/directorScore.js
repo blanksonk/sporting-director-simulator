@@ -214,7 +214,7 @@ const COMMENTS = {
     mid: [
       "Mid-table. With Tottenham. This is basically tradition at this point.",
       "Somewhere in the middle where nobody is happy and nobody is sacked. Proper football management.",
-      "Ten wins, some draws, some losses. Deeply unremarkable. Well done.",
+      "Won some, drew some, lost some. Deeply unremarkable. Well done.",
       "The board expected better. The fans expected better. But here we are.",
       "Not relegated, not European, just floating in the middle. Like always. Like forever.",
       "Mid-table with a squad that should've done more. The chairman wants a word.",
