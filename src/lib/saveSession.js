@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js';
 import { getAnonUserId } from './identity.js';
 
-export async function saveSession({ username, club, results, transfers, formation, startingBudget, budgetRemaining }) {
+export async function saveSession({ username, club, results, transfers, formation, startingBudget, budgetRemaining, directorScore }) {
   try {
     const { table, userFixtures } = results;
     const userRow = table.find(r => r.club === club);
@@ -34,6 +34,7 @@ export async function saveSession({ username, club, results, transfers, formatio
       transfers_in:     transfers.bought?.length ?? 0,
       transfers_out:    transfers.sold?.length ?? 0,
       outcome_zone:     zone,
+      director_score:   directorScore ?? null,
       anon_user_id:     getAnonUserId(),
     });
 

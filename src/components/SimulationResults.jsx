@@ -5,6 +5,7 @@ import { CLUB_COLORS } from '../data/budgets.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
 import { pName, pPos } from '../utils/playerName.js';
 import { saveSession } from '../lib/saveSession.js';
+import { calcDirectorScore, getDirectorComment } from '../utils/directorScore.js';
 
 const TABS = ['Overview', 'Season Stats', 'My Matches', 'Transfer Window'];
 
@@ -155,7 +156,8 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
         });
       setLeagueTransfers(summary);
       setLoading(false);
-      saveSession({ username, club, results: season, transfers, formation, startingBudget, budgetRemaining });
+      const dirScore = calcDirectorScore({ club, finalPosition: season.table.find(r => r.club === club)?.position ?? 10, startingBudget, budgetRemaining });
+      saveSession({ username, club, results: season, transfers, formation, startingBudget, budgetRemaining, directorScore: dirScore });
     }, 60);
   }, []);
 
@@ -188,6 +190,9 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
     : userRow?.position <= 6 ? 'Europa League'
     : userRow?.position >= 18 ? 'Relegated 🔻'
     : 'Mid-table';
+
+  const directorScore = userRow ? calcDirectorScore({ club, finalPosition: userRow.position, startingBudget, budgetRemaining }) : null;
+  const directorComment = userRow ? getDirectorComment({ club, finalPosition: userRow.position, startingBudget, budgetRemaining }) : null;
 
   return (
     <div className="min-h-screen bg-[#0f1117] flex flex-col">
@@ -242,6 +247,20 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
         ═══════════════════════════════════════════════════════════════════ */}
         {tab === 'Overview' && (
           <div className="space-y-6">
+
+            {/* Director's verdict */}
+            {directorComment && (
+              <div className="bg-gray-900/60 border border-gray-800 rounded-xl px-5 py-4 flex items-start gap-4"
+                style={{ borderLeftWidth: 3, borderLeftColor: color }}>
+                <div className="text-2xl shrink-0 mt-0.5">🎙️</div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color }}>
+                    Director's Verdict · {directorScore}/1000
+                  </div>
+                  <p className="text-sm text-gray-200 leading-relaxed italic">"{directorComment}"</p>
+                </div>
+              </div>
+            )}
 
             {/* Season record row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

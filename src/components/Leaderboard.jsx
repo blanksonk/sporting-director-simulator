@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
+import { calcDirectorScore } from '../utils/directorScore.js';
 
 function ClubLogo({ club }) {
   const [failed, setFailed] = useState(false);
@@ -54,13 +55,22 @@ export default function Leaderboard({ onBack }) {
           supabase.from('game_sessions').select('*', { count: 'exact', head: true }),
           supabase
             .from('game_sessions')
-            .select('username, club, final_position, points, outcome_zone, played_at, wins, draws, losses, goals_for, goals_against, starting_budget, budget_remaining, transfers_in, transfers_out')
+            .select('username, club, final_position, points, outcome_zone, played_at, wins, draws, losses, goals_for, goals_against, starting_budget, budget_remaining, transfers_in, transfers_out, director_score')
+            .order('director_score', { ascending: false })
             .order('points', { ascending: false })
-            .order('final_position', { ascending: true })
             .limit(50),
         ]);
         if (dataRes.error) throw dataRes.error;
-        setSessions(dataRes.data ?? []);
+        const rows = (dataRes.data ?? []).map(r => ({
+          ...r,
+          dirScore: r.director_score ?? calcDirectorScore({
+            club: r.club,
+            finalPosition: r.final_position,
+            startingBudget: r.starting_budget,
+            budgetRemaining: r.budget_remaining,
+          }),
+        }));
+        setSessions(rows);
         setTotalCount(countRes.count ?? 0);
       } catch {
         setError('Could not load leaderboard. Check back later.');
@@ -83,7 +93,8 @@ export default function Leaderboard({ onBack }) {
             </button>
             <div>
               <div className="text-xs text-gray-500 tracking-widest uppercase">Global</div>
-              <div className="font-black text-lg text-emerald-400">Leaderboard</div>
+              <div className="font-black text-lg text-emerald-400">Director Leaderboard</div>
+              <div className="text-[10px] text-gray-600">Ranked by Director Score — harder clubs score higher</div>
             </div>
           </div>
           {!loading && !error && (
@@ -144,8 +155,8 @@ export default function Leaderboard({ onBack }) {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <div className="font-black text-white text-lg">{row.points}<span className="text-xs text-gray-500 font-normal ml-0.5">pts</span></div>
-                      <div className="text-xs font-bold" style={{ color: zoneColor }}>{ordinal(row.final_position)}</div>
+                      <div className="font-black text-white text-lg">{row.dirScore}<span className="text-xs text-gray-500 font-normal ml-0.5">/1000</span></div>
+                      <div className="text-xs font-bold" style={{ color: zoneColor }}>{ordinal(row.final_position)} · {row.points}pts</div>
                     </div>
 
                     <div className="text-right shrink-0 hidden sm:block">
