@@ -5,7 +5,8 @@ import { CLUB_COLORS } from '../data/budgets.js';
 import { CLUB_LOGOS, CLUB_EMOJI } from '../data/clubLogos.js';
 import { pName, pPos } from '../utils/playerName.js';
 import { saveSession } from '../lib/saveSession.js';
-import { calcDirectorScore, getDirectorComment } from '../utils/directorScore.js';
+import { calcDirectorScore, calcSquadBalance, getDirectorComment } from '../utils/directorScore.js';
+import { CLUB_BUDGETS } from '../data/budgets.js';
 
 const TABS = ['Overview', 'Season Stats', 'My Matches', 'Transfer Window'];
 
@@ -156,7 +157,23 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
         });
       setLeagueTransfers(summary);
       setLoading(false);
-      const dirScore = calcDirectorScore({ club, finalPosition: season.table.find(r => r.club === club)?.position ?? 10, startingBudget, budgetRemaining });
+      const userRow   = season.table.find(r => r.club === club);
+      const fixtures  = season.userFixtures ?? [];
+      const winsCount = fixtures.filter(f => f.userGoals > f.oppGoals).length;
+      const gf        = fixtures.reduce((s, f) => s + f.userGoals, 0);
+      const ga        = fixtures.reduce((s, f) => s + f.oppGoals, 0);
+      const sqBal     = calcSquadBalance(updatedSquads.get(club) ?? squad);
+      const spBonus   = Math.max(0, startingBudget - (CLUB_BUDGETS[club] ?? 0));
+      const dirScore  = calcDirectorScore({
+        club,
+        finalPosition:  userRow?.position ?? 10,
+        startingBudget, budgetRemaining,
+        wins:           winsCount,
+        goalsFor:       gf,
+        goalsAgainst:   ga,
+        squadBalance:   sqBal,
+        sponsorBonus:   spBonus,
+      });
       saveSession({ username, club, results: season, transfers, formation, startingBudget, budgetRemaining, directorScore: dirScore });
     }, 60);
   }, []);
@@ -191,7 +208,12 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
     : userRow?.position >= 18 ? 'Relegated 🔻'
     : 'Mid-table';
 
-  const directorScore = userRow ? calcDirectorScore({ club, finalPosition: userRow.position, startingBudget, budgetRemaining }) : null;
+  const directorScore = userRow ? calcDirectorScore({
+    club, finalPosition: userRow.position, startingBudget, budgetRemaining,
+    wins, goalsFor: gf, goalsAgainst: ga,
+    squadBalance: calcSquadBalance(squad),
+    sponsorBonus: Math.max(0, startingBudget - (CLUB_BUDGETS[club] ?? 0)),
+  }) : null;
   const directorComment = userRow ? getDirectorComment({ club, finalPosition: userRow.position, startingBudget, budgetRemaining }) : null;
 
   return (

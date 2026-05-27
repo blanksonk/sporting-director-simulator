@@ -53,20 +53,58 @@ export function getExpectedPosition(club) {
   return EXPECTED_POSITION[club] ?? 15;
 }
 
-// Score: 0–1000. Position (500pts) + overperformance vs expectation (400pts) + budget efficiency (100pts)
-export function calcDirectorScore({ club, finalPosition, startingBudget, budgetRemaining }) {
+// Score: 0–1000. Polynomial combination of 8 normalized components (weights sum to 1.0).
+// Tier 1 club winning with strong stats ≈ 750–800. Only tier 4 winning all-out can approach 1000.
+export function calcDirectorScore({
+  club, finalPosition, startingBudget, budgetRemaining,
+  wins = 0, goalsFor = 0, goalsAgainst = 0,
+  squadBalance = 0,  // 0–1: how well all position lines are covered
+  sponsorBonus = 0,  // raw bonus £ from sponsor (0, 5M, 15M, or 30M)
+}) {
   const expected = getExpectedPosition(club);
+  const tier = getClubTier(club);
 
-  const posScore = ((21 - finalPosition) / 20) * 500;
+  // ── Normalize each input to 0–1 ──────────────────────────────────────────
 
-  const overperf = Math.max(0, expected - finalPosition);
-  const overperfScore = Math.min(overperf / Math.max(expected - 1, 1), 1) * 400;
+  const p = (21 - finalPosition) / 20;
 
-  const budgetScore = startingBudget > 0
-    ? Math.max(0, Math.min(budgetRemaining / startingBudget, 1)) * 100
-    : 0;
+  const overperfFrac = Math.min(Math.max(0, expected - finalPosition) / Math.max(expected - 1, 1), 1);
+  const tierBonus = (tier - 1) / 3; // tier1=0  tier2=0.33  tier3=0.67  tier4=1.0
+  const u = overperfFrac * tierBonus;
 
-  return Math.round(posScore + overperfScore + budgetScore);
+  const a  = Math.min(Math.max(0, (goalsFor - 30)    / 60), 1); // 30 gf=0, 90 gf=1
+  const d  = Math.min(Math.max(0, (80 - goalsAgainst) / 60), 1); // 80 ga=0, 20 ga=1
+  const w  = Math.min(wins / 38, 1);
+  const b  = startingBudget > 0 ? Math.max(0, Math.min(budgetRemaining / startingBudget, 1)) : 0;
+  const sq = Math.min(Math.max(0, squadBalance), 1);
+  const sp = Math.min(sponsorBonus / 30_000_000, 1); // max sponsor bonus is 30M
+
+  // ── Polynomial combination ────────────────────────────────────────────────
+  // Exponents create curves so every decimal difference in inputs shifts the score.
+  const score = 1000 * (
+    0.50 * Math.pow(p,  1.10)  // position — dominates, slight upward curve
+    + 0.13 * u                  // underdog/difficulty — linear (already compound)
+    + 0.09 * Math.pow(a,  1.50) // attack flair — convex, hard to max
+    + 0.09 * Math.pow(d,  1.50) // defensive solidity — convex, hard to max
+    + 0.06 * Math.pow(w,  1.20) // win rate
+    + 0.05 * Math.pow(sq, 0.80) // squad balance — concave, rewards even a decent setup
+    + 0.04 * Math.pow(sp, 0.70) // sponsor tier — concave, any sponsor beats none
+    + 0.04 * b                   // budget efficiency — linear
+  );
+
+  return Math.round(score);
+}
+
+// Returns 0–1 based on how well all 4 position lines are covered in the squad
+export function calcSquadBalance(squad) {
+  if (!squad || squad.length === 0) return 0;
+  const counts = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+  squad.forEach(p => { if (counts[p.position] != null) counts[p.position]++; });
+  const gkFrac  = Math.min(counts.GK  / 2, 1); // target: 2 GKs
+  const defFrac = Math.min(counts.DEF / 6, 1); // target: 6 DEFs
+  const midFrac = Math.min(counts.MID / 6, 1); // target: 6 MIDs
+  const fwdFrac = Math.min(counts.FWD / 4, 1); // target: 4 FWDs
+  return (gkFrac + defFrac + midFrac + fwdFrac) / 4;
 }
 
 // ─── Comment bank ────────────────────────────────────────────────────────────
