@@ -150,8 +150,6 @@ export default function Leaderboard({ onBack }) {
 
                 <div className="bg-gray-900/50 border border-gray-800 rounded-xl px-4 py-3 overflow-hidden"
                   style={medal ? { borderColor: `${medal.color}40` } : {}}>
-                  {/* Zone colour strip — top edge like FM table */}
-                  <div className="h-0.5 -mx-4 -mt-3 mb-3" style={{ backgroundColor: zoneColor }} />
 
                   {/* Top row: rank, name, club, position, points, date */}
                   <div className="flex items-center gap-3 mb-2">
@@ -165,8 +163,7 @@ export default function Leaderboard({ onBack }) {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-black truncate"
                           style={{ color: medal ? medal.color : '#ffffff' }}>{row.username}</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{ backgroundColor: `${zoneColor}20`, color: zoneColor }}>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-gray-800 text-gray-400">
                           {row.outcome_zone}
                         </span>
                       </div>
@@ -180,7 +177,7 @@ export default function Leaderboard({ onBack }) {
                       <div className="font-black text-lg" style={{ color: medal ? medal.color : '#ffffff' }}>
                         {row.dirScore}<span className="text-xs text-gray-500 font-normal ml-0.5">/1000</span>
                       </div>
-                      <div className="text-xs text-gray-500">{ordinal(row.final_position)} · {row.points}pts</div>
+                      <div className="text-xs text-gray-600">{ordinal(row.final_position)} · {row.points}pts</div>
                     </div>
 
                     <div className="text-right shrink-0 hidden sm:block">
