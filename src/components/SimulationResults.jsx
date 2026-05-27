@@ -14,11 +14,11 @@ function fmt(v) {
   return `£${(v / 1_000).toFixed(0)}K`;
 }
 
-function zoneColor(pos) {
-  if (pos === 1)    return '#f59e0b'; // Champion — gold
-  if (pos <= 4)     return '#3b82f6'; // Champions League — blue
-  if (pos <= 6)     return '#f97316'; // Europa League — orange
-  if (pos >= 18)    return '#ef4444'; // Relegation — red
+function zoneStrip(pos) {
+  if (pos === 1)  return '#f59e0b';
+  if (pos <= 4)   return '#3b82f6';
+  if (pos <= 6)   return '#f97316';
+  if (pos >= 18)  return '#ef4444';
   return null;
 }
 
@@ -378,7 +378,7 @@ export default function SimulationResults({ club, squad, allPlayers, transfers, 
                 </div>
                 {table.map((row) => {
                   const isUser = row.club === club;
-                  const zc = zoneColor(row.position);
+                  const zc = zoneStrip(row.position);
                   return (
                     <div key={row.club} className="grid items-center py-2 border-t border-gray-800/40 text-sm"
                       style={{
